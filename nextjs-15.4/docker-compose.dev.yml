@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:./content.db
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev-secret-key-change-in-production}
+      # Development Tools
+      - DEV_IMPERSONATION_TOKEN=${DEV_IMPERSONATION_TOKEN:-dev-token-123}
+      # OAuth Providers (optional in dev)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - META_CLIENT_ID=${META_CLIENT_ID}
+      - META_CLIENT_SECRET=${META_CLIENT_SECRET}
+      - APPLE_CLIENT_ID=${APPLE_CLIENT_ID}
+      - APPLE_CLIENT_SECRET=${APPLE_CLIENT_SECRET}
+      # SMTP (optional in dev - will fallback to console)
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      # Twilio (optional in dev)
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      # File Upload
+      - UPLOAD_DIR=/app/uploads
+      - MAX_FILE_SIZE=5242880
+      # AWS S3 (optional)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      - dev_uploads:/app/uploads
+    networks:
+      - dev_network
+    command: npm run dev
+
+volumes:
+  dev_uploads:
+
+networks:
+  dev_network:
+    driver: bridge

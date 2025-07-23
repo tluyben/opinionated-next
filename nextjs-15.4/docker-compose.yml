@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./content.db
+      - NEXTAUTH_URL=https://yourdomain.com
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      # OAuth Providers
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - META_CLIENT_ID=${META_CLIENT_ID}
+      - META_CLIENT_SECRET=${META_CLIENT_SECRET}
+      - APPLE_CLIENT_ID=${APPLE_CLIENT_ID}
+      - APPLE_CLIENT_SECRET=${APPLE_CLIENT_SECRET}
+      # SMTP
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      # Twilio
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      # File Upload
+      - UPLOAD_DIR=/app/uploads
+      - MAX_FILE_SIZE=5242880
+      # AWS S3 (optional)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+    volumes:
+      - app_data:/app/data
+      - app_uploads:/app/uploads
+    networks:
+      - app_network
+    depends_on:
+      - caddy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - app_network
+
+volumes:
+  app_data:
+  app_uploads:
+  caddy_data:
+  caddy_config:
+
+networks:
+  app_network:
+    driver: bridge

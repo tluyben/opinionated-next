@@ -253,13 +253,15 @@ npm run create-admin # Creates admin user if none exists
 
 ### Development Commands
 ```bash
-npm run dev          # Start development server
+npm run dev          # Start development server on 0.0.0.0:3000
 npm run build        # Build for production
-npm run start        # Start production server
+npm run start        # Start production server on 0.0.0.0:3000
 npm run lint         # Run ESLint
 npm run type-check   # Run TypeScript check
 npm run check        # Quick TypeScript check (faster than build)
 ```
+
+**CRITICAL**: The development server MUST always bind to `0.0.0.0:3000` (not localhost) to ensure accessibility from Docker containers and external connections. This is enforced in the Next.js configuration.
 
 ## Environment Configuration
 Required environment variables:
