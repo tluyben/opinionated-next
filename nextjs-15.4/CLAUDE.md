@@ -36,6 +36,15 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 - **Migration naming:** New migrations use timestamp format (yyyyMMddHHmmss_description.sql)
 - **Legacy migrations:** Existing numbered migrations (0000_, 0001_) remain for compatibility
 
+## SQLite Timestamp Handling with Drizzle
+
+**CRITICAL**: When adding timestamp fields to SQLite tables with Drizzle:
+- Use `integer("column_name", { mode: "timestamp" })` for the column type
+- Use `.default(sql`(strftime('%s', 'now'))`)` for default values (NOT `CURRENT_TIMESTAMP`)
+- SQLite's `CURRENT_TIMESTAMP` returns a string, but Drizzle expects Unix timestamps (seconds since epoch)
+- Always check existing tables for examples before adding new timestamp fields
+- When writing migrations that add timestamp columns, use `strftime('%s', 'now')` to set values
+
 ## Architecture Principles
 
 This starter is **OPINIONATED** and follows strict conventions:
