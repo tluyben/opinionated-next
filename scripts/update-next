@@ -1,0 +1,241 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+// ANSI color codes for output
+const colors = {
+  reset: '\033[0m',
+  bright: '\033[1m',
+  red: '\033[31m',
+  green: '\033[32m',
+  yellow: '\033[33m',
+  blue: '\033[34m',
+  magenta: '\033[35m',
+  cyan: '\033[36m'
+};
+
+function log(message, color = 'reset') {
+  console.log(`${colors[color]}${message}${colors.reset}`);
+}
+
+function error(message) {
+  log(`❌ ERROR: ${message}`, 'red');
+}
+
+function success(message) {
+  log(`✅ ${message}`, 'green');
+}
+
+function info(message) {
+  log(`ℹ️  ${message}`, 'blue');
+}
+
+function warning(message) {
+  log(`⚠️  ${message}`, 'yellow');
+}
+
+// Parse command line arguments
+const args = process.argv.slice(2);
+if (args.length !== 2) {
+  error('Usage: ./scripts/update-next <version> <target-directory>');
+  error('Example: ./scripts/update-next 15.4 /path/to/existing/project');
+  process.exit(1);
+}
+
+const [version, targetDir] = args;
+const rootDir = path.resolve(__dirname, '..');
+const sourceDir = path.join(rootDir, `nextjs-${version}`);
+const resolvedTargetDir = path.resolve(targetDir);
+
+log(`🚀 Next.js Version Update Script`, 'bright');
+log(`   Version: ${version}`, 'cyan');
+log(`   Source:  ${sourceDir}`, 'cyan');
+log(`   Target:  ${resolvedTargetDir}`, 'cyan');
+console.log();
+
+// Validation
+if (!fs.existsSync(sourceDir)) {
+  error(`Source directory does not exist: ${sourceDir}`);
+  error(`Available versions: ${fs.readdirSync(rootDir).filter(d => d.startsWith('nextjs-')).join(', ')}`);
+  process.exit(1);
+}
+
+if (!fs.existsSync(resolvedTargetDir)) {
+  error(`Target directory does not exist: ${resolvedTargetDir}`);
+  process.exit(1);
+}
+
+const targetPackageJsonPath = path.join(resolvedTargetDir, 'package.json');
+if (!fs.existsSync(targetPackageJsonPath)) {
+  error(`Target directory is not a valid Next.js project (missing package.json): ${resolvedTargetDir}`);
+  process.exit(1);
+}
+
+// Files and directories to copy (excluding src/, drizzle/, *.db files)
+const filesToCopy = [
+  'CLAUDE.md',
+  'Dockerfile',
+  'docker-compose.yml',
+  'docker-compose.dev.yml',
+  'Caddyfile',
+  'next.config.js',
+  'tsconfig.json',
+  'tailwind.config.js',
+  'postcss.config.js',
+  'drizzle.config.ts',
+  'env.example',
+  '.gitignore',
+  '.dockerignore',
+  'emails',
+  'scripts'
+];
+
+// Files to skip completely
+const filesToSkip = [
+  'src',
+  'drizzle',
+  'node_modules',
+  'package.json', // handled separately
+  'package-lock.json', // will be regenerated
+  '.next',
+  'content.db',
+  'content.db-shm',
+  'content.db-wal',
+  'next-env.d.ts',
+  'tsconfig.tsbuildinfo',
+  'SECURITY-AUDIT.md'
+];
+
+info('Starting update process...');
+
+try {
+  // Read existing package.json to preserve custom metadata
+  const targetPackageJson = JSON.parse(fs.readFileSync(targetPackageJsonPath, 'utf8'));
+  const sourcePackageJson = JSON.parse(fs.readFileSync(path.join(sourceDir, 'package.json'), 'utf8'));
+  
+  // Preserve custom fields from target package.json
+  const preservedFields = {
+    name: targetPackageJson.name || sourcePackageJson.name,
+    version: targetPackageJson.version || '1.0.0',
+    description: targetPackageJson.description || sourcePackageJson.description,
+    author: targetPackageJson.author || sourcePackageJson.author,
+    license: targetPackageJson.license || sourcePackageJson.license,
+    repository: targetPackageJson.repository || sourcePackageJson.repository,
+    keywords: targetPackageJson.keywords || sourcePackageJson.keywords,
+    homepage: targetPackageJson.homepage || sourcePackageJson.homepage
+  };
+
+  info(`Preserving package metadata: ${preservedFields.name}@${preservedFields.version}`);
+
+  // Copy configuration files
+  for (const file of filesToCopy) {
+    const sourcePath = path.join(sourceDir, file);
+    const targetPath = path.join(resolvedTargetDir, file);
+    
+    if (fs.existsSync(sourcePath)) {
+      const stats = fs.statSync(sourcePath);
+      
+      if (stats.isDirectory()) {
+        // Copy directory recursively
+        if (fs.existsSync(targetPath)) {
+          info(`Removing existing directory: ${file}`);
+          fs.rmSync(targetPath, { recursive: true, force: true });
+        }
+        
+        info(`Copying directory: ${file}`);
+        copyDirectoryRecursive(sourcePath, targetPath);
+      } else {
+        // Copy file
+        info(`Copying file: ${file}`);
+        fs.copyFileSync(sourcePath, targetPath);
+      }
+    } else {
+      warning(`Source file not found, skipping: ${file}`);
+    }
+  }
+
+  // Update package.json with new dependencies but preserve metadata
+  const updatedPackageJson = {
+    ...sourcePackageJson,
+    ...preservedFields,
+    private: true // Always keep private
+  };
+
+  info('Updating package.json with new dependencies...');
+  fs.writeFileSync(targetPackageJsonPath, JSON.stringify(updatedPackageJson, null, 2) + '\n');
+
+  // Remove package-lock.json to force fresh install
+  const lockFilePath = path.join(resolvedTargetDir, 'package-lock.json');
+  if (fs.existsSync(lockFilePath)) {
+    info('Removing package-lock.json for fresh install...');
+    fs.unlinkSync(lockFilePath);
+  }
+
+  // Remove node_modules to force fresh install
+  const nodeModulesPath = path.join(resolvedTargetDir, 'node_modules');
+  if (fs.existsSync(nodeModulesPath)) {
+    info('Removing node_modules for fresh install...');
+    fs.rmSync(nodeModulesPath, { recursive: true, force: true });
+  }
+
+  // Run npm install
+  info('Running npm install...');
+  console.log();
+  
+  try {
+    execSync('npm install', { 
+      cwd: resolvedTargetDir, 
+      stdio: 'inherit',
+      timeout: 300000 // 5 minute timeout
+    });
+  } catch (installError) {
+    error('npm install failed. You may need to run it manually.');
+    error(`Run: cd ${resolvedTargetDir} && npm install`);
+    process.exit(1);
+  }
+
+  console.log();
+  success(`Successfully updated project to Next.js ${version}!`);
+  console.log();
+  
+  log('📋 Next Steps:', 'bright');
+  info(`1. cd ${resolvedTargetDir}`);
+  info('2. Review any breaking changes in your src/ code');
+  info('3. Update your environment variables if needed');
+  info('4. Run database migrations: npm run db:migrate');
+  info('5. Test your application: npm run dev');
+  info('6. Run type checking: npm run check');
+  
+  console.log();
+  warning('⚠️  Important Reminders:');
+  warning('• Your src/ directory was NOT modified - review for breaking changes');
+  warning('• Your database and migrations were NOT modified');
+  warning('• Check for any new environment variables in env.example');
+  warning('• Test all functionality thoroughly before deploying');
+
+} catch (err) {
+  error(`Update failed: ${err.message}`);
+  process.exit(1);
+}
+
+// Helper function to copy directory recursively
+function copyDirectoryRecursive(src, dest) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    
+    if (entry.isDirectory()) {
+      copyDirectoryRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
