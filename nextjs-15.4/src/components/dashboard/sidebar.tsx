@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Shield,
+  Database,
 } from 'lucide-react';
 import { useState } from 'react';
 import { SessionUser } from '@/lib/auth/session';
@@ -27,6 +28,10 @@ const navigation = [
   { name: 'Profile', href: '/profile', icon: User },
   { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Demo', href: '/demo', icon: Play },
+];
+
+const adminNavigation = [
+  { name: 'Database', href: '/database', icon: Database },
 ];
 
 export function Sidebar({ user }: SidebarProps) {
@@ -104,6 +109,32 @@ export function Sidebar({ user }: SidebarProps) {
                 </Link>
               );
             })}
+            
+            {/* Admin-only navigation */}
+            {user.role === 'admin' && (
+              <>
+                <div className="border-t border-border my-2" />
+                {adminNavigation.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        'flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </>
+            )}
           </nav>
 
           {/* Footer actions */}

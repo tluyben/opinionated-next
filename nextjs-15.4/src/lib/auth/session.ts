@@ -80,3 +80,11 @@ export async function deleteSession() {
 
   cookieStore.delete(SESSION_COOKIE);
 }
+
+export async function requireAuth(): Promise<SessionUser> {
+  const user = await getSession();
+  if (!user) {
+    throw new Error('Authentication required');
+  }
+  return user;
+}

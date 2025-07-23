@@ -49,7 +49,7 @@ export function ApiKeyForm() {
           </div>
           <h4 className="font-medium text-green-900">API Key Generated!</h4>
           <p className="text-sm text-green-700 mb-4">
-            Copy your API key now. You won't be able to see it again.
+            Copy your API key now. You won&apos;t be able to see it again.
           </p>
           <div className="bg-white border rounded-lg p-3 mb-4">
             <code className="text-sm font-mono break-all text-gray-800">
