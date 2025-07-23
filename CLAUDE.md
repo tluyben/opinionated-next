@@ -141,6 +141,21 @@ CREATE TABLE api_keys (
 );
 ```
 
+### Files Table (S3 Fallback Storage)
+```sql
+CREATE TABLE files (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  original_name TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  file_data BLOB NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
 ## Key Features
 
 ### Authentication System
@@ -196,6 +211,9 @@ CREATE TABLE api_keys (
 ### File Upload System
 - Multer middleware for handling multipart/form-data
 - Secure file validation and storage
+- **Flexible Storage Options:**
+  - **S3 Storage:** Configure AWS S3 credentials in environment variables
+  - **Database Fallback:** If S3 credentials missing, files stored in `files` table
 - Image optimization for avatars/uploads
 
 ### SMS Integration
@@ -238,13 +256,14 @@ npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Run ESLint
 npm run type-check   # Run TypeScript check
+npm run check        # Quick TypeScript check (faster than build)
 ```
 
 ## Environment Configuration
 Required environment variables:
 ```env
 # Database
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="file:./content.db"
 
 # Authentication
 NEXTAUTH_SECRET="your-secret-key"
@@ -275,6 +294,12 @@ TWILIO_PHONE_NUMBER=""
 # File Upload
 UPLOAD_DIR="./uploads"
 MAX_FILE_SIZE="5242880" # 5MB
+
+# AWS S3 (optional - falls back to database storage)
+AWS_ACCESS_KEY_ID=""
+AWS_SECRET_ACCESS_KEY=""
+AWS_REGION=""
+AWS_S3_BUCKET=""
 
 # Development Tools
 DEV_IMPERSONATION_TOKEN="your-dev-token-here"
@@ -444,9 +469,16 @@ logs
 
 - **DO NOT initialize git repository** in nextjs-xx.x directories
 - **ALWAYS create .gitignore and .dockerignore** files using provided templates
+- **Database is ALWAYS named `content.db`** - never dev.db, prod.db, or other names
 - **Always generate and run migrations** when making schema changes
 - **Use SQLite timestamp format** with `strftime('%s', 'now')` for default values
 - **Create admin user** on initial setup and after database resets
+- **File storage flexibility:**
+  - **S3 preferred:** Configure AWS credentials for cloud storage
+  - **Database fallback:** Files stored in `files` table if S3 credentials missing
+- **Environment files:**
+  - **env.example** (no dot prefix) for documentation
+  - **.env*** patterns in .gitignore for security
 - **Test authentication flows** with all OAuth providers
 - **Verify email/SMS functionality** in development
 - **Check environment variables** are properly configured
@@ -459,6 +491,7 @@ logs
 - **Test development impersonation** middleware works correctly
 - **Ensure API key management** works for REST endpoints (when they exist)
 - **Use Server Actions** for all page interactions, NOT custom APIs
+- **Always run `npm run check`** after making changes to verify TypeScript compilation
 - **Ensure proper error handling** throughout the application
 
 ## Deployment Checklist
@@ -514,6 +547,12 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 - ❌ **NEVER** initialize git repository (`git init`)
 - ❌ **NEVER** modify `.gitignore` or `.dockerignore` files
 
+### 🚨 MANDATORY AFTER EVERY CHANGE
+- ✅ **ALWAYS run `npm run check`** immediately after making ANY changes
+- ✅ **MUST fix ALL TypeScript errors** before continuing
+- ✅ **No exceptions** - TypeScript must compile cleanly
+- ✅ **Faster than build** - use for quick validation
+
 ### DATABASE SCHEMA CHANGES
 - Database schema is defined in `./src/lib/db/schema.ts`
 - To apply schema changes, user must run: `npm run db:generate && npm run db:migrate`
@@ -550,18 +589,30 @@ This project includes pre-installed and configured:
 
 - `./src/app/` - Next.js App Router pages
 - `./src/components/` - React components (including shadcn/ui)
-- `./src/lib/` - Utilities, database, auth, actions
+- `./src/lib/` - Utilities, database, auth, actions, storage
 - `./src/lib/db/schema.ts` - Database schema definitions
+- `./src/lib/storage/` - File storage utilities (S3/database)
 - `./src/types/` - TypeScript type definitions
 
 ## Development Guidelines
 
-1. Follow existing code patterns and conventions
-2. Use existing components from shadcn/ui
-3. Implement new features using Server Actions
-4. Ensure mobile responsiveness for all UI
-5. Maintain TypeScript strict compliance
-6. Test on both light and dark themes
+1. **TypeScript First**: Run `npm run check` after EVERY change - no exceptions
+2. Follow existing code patterns and conventions
+3. Use existing components from shadcn/ui
+4. Implement new features using Server Actions
+5. Ensure mobile responsiveness for all UI
+6. Maintain TypeScript strict compliance
+7. Test on both light and dark themes
+
+## Quick Validation Workflow
+
+After making any changes:
+```bash
+npm run check    # Fast TypeScript validation (< 2 seconds)
+# Fix any errors before proceeding
+npm run lint     # Optional: Check code style
+npm run build    # Full build when ready to test
+```
 
 ## Getting Help
 
