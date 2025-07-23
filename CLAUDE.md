@@ -236,11 +236,13 @@ CREATE TABLE files (
 ### Migration Generation
 Custom script to generate Drizzle migrations with timestamp naming:
 ```bash
-npm run db:generate  # Creates timestamp-description.sql files
+npm run db:generate  # Creates yyyyMMddHHmmss_description.sql files
 npm run db:migrate   # Runs pending migrations
 npm run db:push      # Push schema changes directly
 npm run db:studio    # Opens Drizzle Studio
 ```
+
+**Important:** The `db:generate` script automatically renames Drizzle's default numbered migrations (0001_name.sql) to timestamp format (20250723115655_name.sql) for better organization and deployment tracking.
 
 ### Admin Management Scripts
 Located in `./scripts/` directory:
@@ -326,6 +328,23 @@ DEV_IMPERSONATION_TOKEN="your-dev-token-here"
    npm install toad-scheduler
    npm install lucide-react class-variance-authority clsx tailwind-merge
    ```
+
+   **🚨 CRITICAL: Security Audit Requirements**
+   After `npm install`, you MUST resolve ALL security vulnerabilities:
+   ```bash
+   npm audit          # Check for vulnerabilities
+   npm audit fix      # Fix auto-fixable issues
+   npm audit fix --force  # Fix remaining issues (if needed)
+   npm audit          # Verify vulnerabilities are resolved
+   ```
+   
+   **Target: 0 vulnerabilities. If persistent dev-only vulnerabilities remain (e.g., in drizzle-kit's esbuild dependencies), document them and verify they don't affect production builds.**
+   
+   Acceptable exceptions:
+   - Development-only tool vulnerabilities that don't affect production builds
+   - Vulnerabilities in packages like `@esbuild-kit/*` used only by development tools
+   
+   **Always verify with `npm run build` that the application builds successfully.**
 
 3. **Setup shadcn/ui**
    ```bash
@@ -492,13 +511,16 @@ logs
 - **Ensure API key management** works for REST endpoints (when they exist)
 - **Use Server Actions** for all page interactions, NOT custom APIs
 - **Always run `npm run check`** after making changes to verify TypeScript compilation
+- **Security audit must show minimal vulnerabilities** - run `npm audit` and fix all production-affecting issues
 - **Ensure proper error handling** throughout the application
+- **Always use `devIndicators: false`** in next.config.js to hide the annoying development indicator button
 
 ## Deployment Checklist
 
 - [ ] Environment variables configured
 - [ ] Database migrations run
 - [ ] Admin user created and credentials noted
+- [ ] **Security audit resolved** - no production-affecting vulnerabilities (`npm audit`)
 - [ ] OAuth providers configured with correct redirect URLs
 - [ ] SMTP/email system tested
 - [ ] File upload directory permissions set

@@ -11,6 +11,7 @@ const users = sqliteTable('users', {
   emailVerified: integer('email_verified', { mode: 'boolean' }).default(false),
   oauthProvider: text('oauth_provider'),
   oauthId: text('oauth_id'),
+  lastLoginAt: integer('last_login_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });

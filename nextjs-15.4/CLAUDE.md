@@ -33,6 +33,8 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 - Database schema is defined in `./src/lib/db/schema.ts`
 - To apply schema changes, user must run: `npm run db:generate && npm run db:migrate`
 - **NEVER** manually edit migration files in `./drizzle/migrations/`
+- **Migration naming:** New migrations use timestamp format (yyyyMMddHHmmss_description.sql)
+- **Legacy migrations:** Existing numbered migrations (0000_, 0001_) remain for compatibility
 
 ## Architecture Principles
 

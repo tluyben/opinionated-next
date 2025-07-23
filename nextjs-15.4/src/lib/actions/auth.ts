@@ -29,11 +29,12 @@ export async function loginAction(formData: FormData) {
     }
 
     await createSession(user[0].id);
-    redirect('/dashboard');
   } catch (error) {
     console.error('Login error:', error);
     return { error: 'Something went wrong' };
   }
+  
+  redirect('/dashboard');
 }
 
 export async function signupAction(formData: FormData) {
@@ -71,11 +72,12 @@ export async function signupAction(formData: FormData) {
     });
 
     await createSession(userId);
-    redirect('/dashboard');
   } catch (error) {
     console.error('Signup error:', error);
     return { error: 'Something went wrong' };
   }
+  
+  redirect('/dashboard');
 }
 
 export async function logoutAction() {
