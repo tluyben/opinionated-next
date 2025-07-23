@@ -81,15 +81,66 @@ This project includes pre-installed and configured:
 - `./src/lib/storage/` - File storage utilities (S3/database fallback)
 - `./src/types/` - TypeScript type definitions
 
+## Development Tools
+
+### User Impersonation Middleware
+**CRITICAL FOR TESTING**: This project includes user impersonation middleware for development testing:
+
+- **Access any page as any user**: `?token=DEV_TOKEN&user=userId`
+- **Only active in development mode** - automatically disabled in production
+- **Useful for testing, LLM automation, and debugging**
+- **Token configured via `DEV_IMPERSONATION_TOKEN` environment variable**
+
+#### Examples:
+```bash
+# Test as admin user (replace with actual admin ID from database)
+http://localhost:3000/database?token=your-dev-token-here&user=admin-user-id
+
+# Test as regular user  
+http://localhost:3000/dashboard?token=your-dev-token-here&user=regular-user-id
+
+# Test different user roles
+http://localhost:3000/settings?token=your-dev-token-here&user=another-user-id
+```
+
+#### How It Works:
+1. **Middleware intercepts requests** with `token` and `user` query parameters
+2. **Validates the development token** against `DEV_IMPERSONATION_TOKEN`
+3. **Sets impersonation cookie** that overrides normal session authentication
+4. **All subsequent requests** use the impersonated user until cookie expires (24h)
+
+#### Usage for AI Assistants:
+**ALWAYS test your database admin work using impersonation:**
+```bash
+# Test admin access to database
+http://localhost:3000/database?token=DEV_TOKEN&user=ADMIN_USER_ID
+
+# Test regular user (should redirect from admin areas)
+http://localhost:3000/database?token=DEV_TOKEN&user=REGULAR_USER_ID
+```
+
+**To find user IDs for testing:**
+1. Navigate to `/database` as admin
+2. Click on the `users` table to see all user IDs and roles
+3. Copy the IDs you need for testing different scenarios
+
 ## Development Guidelines
 
 1. **TypeScript First**: Run `npm run check` after EVERY change - no exceptions
-2. Follow existing code patterns and conventions
-3. Use existing components from shadcn/ui
-4. Implement new features using Server Actions
-5. Ensure mobile responsiveness for all UI
-6. Maintain TypeScript strict compliance
-7. Test on both light and dark themes
+2. **Test with impersonation**: Use the middleware to test as different user roles
+3. Follow existing code patterns and conventions
+4. Use existing components from shadcn/ui
+5. Implement new features using Server Actions
+6. Ensure mobile responsiveness for all UI
+7. Maintain TypeScript strict compliance
+8. Test on both light and dark themes
+
+## Environment Variables Required
+
+For user impersonation to work, add to your `.env` file:
+```env
+DEV_IMPERSONATION_TOKEN="your-secret-dev-token-here"
+```
 
 ## Quick Validation Workflow
 
@@ -99,6 +150,12 @@ npm run check    # Fast TypeScript validation (< 2 seconds)
 # Fix any errors before proceeding
 npm run lint     # Optional: Check code style
 npm run build    # Full build when ready to test
+
+# Test as admin (replace with actual IDs from database):
+# http://localhost:3000/database?token=your-secret-dev-token-here&user=admin-user-id
+
+# Test regular user access (should redirect from admin areas):
+# http://localhost:3000/database?token=your-secret-dev-token-here&user=regular-user-id
 ```
 
 ## Getting Help

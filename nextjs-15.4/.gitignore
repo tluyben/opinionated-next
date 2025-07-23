@@ -55,3 +55,6 @@ logs
 # Drizzle
 drizzle/migrations/*.sql
 !drizzle/migrations/.gitkeep
+
+cookies.txt
+server.pid

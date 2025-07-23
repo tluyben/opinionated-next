@@ -37,6 +37,29 @@ export async function createSession(userId: string) {
 
 export async function getSession(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
+  
+  // Check for development impersonation first
+  if (process.env.NODE_ENV === 'development') {
+    const impersonateUserId = cookieStore.get('dev-impersonate-user')?.value;
+    if (impersonateUserId) {
+      try {
+        const user = await db.select().from(users).where(eq(users.id, impersonateUserId)).limit(1);
+        if (user.length > 0) {
+          const userData = user[0];
+          return {
+            id: userData.id,
+            email: userData.email,
+            name: userData.name,
+            role: userData.role as 'user' | 'admin',
+            avatarUrl: userData.avatarUrl,
+          };
+        }
+      } catch (error) {
+        console.error('Error getting impersonated user:', error);
+      }
+    }
+  }
+
   const sessionToken = cookieStore.get(SESSION_COOKIE)?.value;
 
   if (!sessionToken) return null;
