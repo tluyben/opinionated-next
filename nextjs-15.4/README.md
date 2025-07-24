@@ -17,6 +17,7 @@ A production-ready Next.js starter with authentication, database, testing, and m
 - 🌙 **Dark Mode** - Built-in theme switching
 - 🔧 **Developer Tools** - User impersonation for testing
 - 🐳 **Docker Ready** - Production Docker setup included
+- 🤖 **LLM Integration** - Multi-provider streaming chat (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
 
 ## Quick Start
 
@@ -115,6 +116,13 @@ AWS_S3_BUCKET=""
 
 # Development
 DEV_IMPERSONATION_TOKEN="your-dev-token-here"
+
+# LLM Providers (optional - add only the ones you want to use)
+OPENAI_API_KEY=""
+ANTHROPIC_API_KEY=""
+OPENROUTER_API_KEY=""
+GROQ_API_KEY=""
+CEREBRAS_API_KEY=""
 ```
 
 ## Testing
@@ -161,6 +169,43 @@ npm run db:generate
 npm run db:migrate
 ```
 
+### LLM Integration
+
+The starter includes built-in support for streaming LLM chat:
+
+#### Available Providers
+- OpenAI (GPT-4, GPT-3.5)
+- Anthropic (Claude models)
+- OpenRouter (Multiple models)
+- Groq (Fast Llama models)
+- Cerebras (High-performance)
+
+#### Usage
+
+```typescript
+import { LLMClient } from '@/lib/llm';
+
+// Basic chat
+const response = await LLMClient.chat(
+  'openai', 
+  'gpt-4o',
+  messages,
+  systemPrompt
+);
+
+// Streaming chat
+for await (const chunk of LLMClient.streamChat(
+  'anthropic',
+  'claude-3-5-sonnet-latest',
+  messages
+)) {
+  console.log(chunk);
+}
+```
+
+#### Demo
+Visit `/demo/llm` to test the LLM integration with a full chat interface.
+
 ## Project Structure
 
 ```
@@ -176,6 +221,7 @@ src/
 │   ├── auth/        # Authentication logic
 │   ├── db/          # Database schema and connections
 │   ├── email/       # Email templates and logic
+│   ├── llm/         # LLM client and providers
 │   └── storage/     # File storage utilities
 ├── middleware.ts    # Middleware (dev impersonation)
 └── types/          # TypeScript type definitions

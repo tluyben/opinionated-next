@@ -80,15 +80,18 @@ This project includes pre-installed and configured:
 - Vitest for unit/integration testing
 - Testing Library for component testing
 - Playwright for E2E testing
+- LLM Integration (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
 - All necessary type definitions
 
 ## File Structure
 
 - `./src/app/` - Next.js App Router pages
 - `./src/components/` - React components (including shadcn/ui)
+- `./src/components/llm/` - LLM chat components
 - `./src/lib/` - Utilities, database, auth, actions, storage
 - `./src/lib/db/schema.ts` - Database schema definitions
 - `./src/lib/storage/` - File storage utilities (S3/database fallback)
+- `./src/lib/llm/` - LLM client and providers
 - `./src/types/` - TypeScript type definitions
 - `./src/**/*.test.ts(x)` - Test files co-located with source files
 - `./tests/e2e/` - Playwright E2E tests
@@ -258,11 +261,93 @@ The README.md file is the primary documentation for users. Update it when:
 - Changing deployment procedures
 - Adding new dependencies or integrations
 
+## LLM Integration
+
+The project includes built-in LLM streaming chat support for multiple providers:
+
+### Supported Providers
+- **OpenAI** - GPT-4, GPT-3.5 models
+- **Anthropic** - Claude models
+- **OpenRouter** - Access to multiple models
+- **Groq** - Fast Llama models
+- **Cerebras** - High-performance inference
+
+### Usage
+
+#### Basic Chat (Non-streaming)
+```typescript
+import { LLMClient } from '@/lib/llm';
+
+const response = await LLMClient.chat(
+  'openai',           // provider
+  'gpt-4o',          // model
+  [{ role: 'user', content: 'Hello!' }],  // messages
+  'You are a helpful assistant'           // optional system prompt
+);
+```
+
+#### Streaming Chat
+```typescript
+import { LLMClient } from '@/lib/llm';
+
+for await (const chunk of LLMClient.streamChat(
+  'anthropic',
+  'claude-3-5-sonnet-latest',
+  messages,
+  systemPrompt
+)) {
+  console.log(chunk); // Real-time streaming tokens
+}
+```
+
+#### Pre-built Chat Component
+```tsx
+import { StreamingChat } from '@/components/llm/streaming-chat';
+import { getAvailableLLMProviders } from '@/lib/actions/llm';
+
+export default async function ChatPage() {
+  const { providers, models } = await getAvailableLLMProviders();
+  
+  return (
+    <StreamingChat 
+      availableProviders={providers}
+      providerModels={models}
+    />
+  );
+}
+```
+
+### Demo
+Visit `/demo/llm` to see the LLM integration in action with a full-featured chat interface.
+
 ## Environment Variables Required
 
 For user impersonation to work, add to your `.env` file:
 ```env
 DEV_IMPERSONATION_TOKEN="your-secret-dev-token-here"
+```
+
+For LLM providers, add the API keys for the providers you want to use:
+```env
+# OpenAI
+OPENAI_API_KEY="sk-..."
+OPENAI_BASE_URL="" # Optional custom endpoint
+
+# Anthropic
+ANTHROPIC_API_KEY="sk-ant-..."
+ANTHROPIC_BASE_URL="" # Optional custom endpoint
+
+# OpenRouter
+OPENROUTER_API_KEY="sk-or-..."
+OPENROUTER_BASE_URL="" # Optional custom endpoint
+
+# Groq
+GROQ_API_KEY="gsk_..."
+GROQ_BASE_URL="" # Optional custom endpoint
+
+# Cerebras
+CEREBRAS_API_KEY="csk-..."
+CEREBRAS_BASE_URL="" # Optional custom endpoint
 ```
 
 ## Quick Validation Workflow

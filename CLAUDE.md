@@ -19,6 +19,7 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 - **Vitest** for unit and integration testing (TDD)
 - **Testing Library** for component testing
 - **Playwright** for E2E testing
+- **LLM Integration** - Multi-provider streaming chat (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
 
 ## Architecture Principles
 
@@ -61,7 +62,8 @@ nextjs-15.4/
 │   │   │   ├── auth/
 │   │   │   ├── upload/
 │   │   │   ├── email/
-│   │   │   └── sms/
+│   │   │   ├── sms/
+│   │   │   └── llm/ (LLM streaming endpoints)
 │   │   ├── globals.css
 │   │   ├── layout.tsx
 │   │   └── page.tsx (landing)
@@ -70,6 +72,7 @@ nextjs-15.4/
 │   │   ├── auth/
 │   │   ├── dashboard/
 │   │   ├── landing/
+│   │   ├── llm/ (LLM chat components)
 │   │   ├── mobile/ (mobile-specific components)
 │   │   └── theme/
 │   ├── lib/
@@ -80,6 +83,7 @@ nextjs-15.4/
 │   │   ├── email/
 │   │   ├── sms/
 │   │   ├── queue/
+│   │   ├── llm/ (LLM client and providers)
 │   │   ├── actions/ (server actions)
 │   │   └── utils/
 │   ├── middleware.ts (dev user impersonation)
@@ -258,6 +262,15 @@ CREATE TABLE files (
 - **Mocking**: Database and external services in tests
 - **CI/CD Integration**: Tests run automatically on push
 
+### LLM Integration
+- **Multi-Provider Support**: OpenAI, Anthropic, OpenRouter, Groq, Cerebras
+- **Streaming Chat**: Real-time token streaming for responsive UX
+- **Flexible Configuration**: Environment-based provider activation
+- **Universal Interface**: Single `message()` function for all providers
+- **Ready-to-Use Components**: Pre-built chat UI with provider selection
+- **Demo Page**: `/demo/llm` showcases all LLM features
+- **Type-Safe**: Full TypeScript support for all LLM operations
+
 ## Custom Scripts
 
 ### Migration Generation
@@ -360,6 +373,18 @@ AWS_S3_BUCKET=""
 
 # Development Tools
 DEV_IMPERSONATION_TOKEN="your-dev-token-here"
+
+# LLM Providers (optional - configure the ones you want to use)
+OPENAI_API_KEY=""
+OPENAI_BASE_URL="" # Optional, defaults to https://api.openai.com/v1
+ANTHROPIC_API_KEY=""
+ANTHROPIC_BASE_URL="" # Optional, defaults to https://api.anthropic.com/v1
+OPENROUTER_API_KEY=""
+OPENROUTER_BASE_URL="" # Optional, defaults to https://openrouter.ai/api/v1
+GROQ_API_KEY=""
+GROQ_BASE_URL="" # Optional, defaults to https://api.groq.com/openai/v1
+CEREBRAS_API_KEY=""
+CEREBRAS_BASE_URL="" # Optional, defaults to https://api.cerebras.ai/v1
 ```
 
 ## Setup Instructions
@@ -660,6 +685,12 @@ See deployment documentation for Docker and production setup.
 - **Follow TDD workflow** - write failing tests first, then implement code to pass
 - **Run tests before committing** - ensure all tests pass before pushing code
 - **Maintain test coverage** - aim for 80%+ coverage on business logic
+- **LLM Integration usage:**
+  - **Import from `@/lib/llm`** for client utilities
+  - **Use `LLMClient.chat()` or `LLMClient.streamChat()`** for programmatic access
+  - **Pre-built chat component** available at `@/components/llm/streaming-chat`
+  - **Demo available at `/demo/llm`** to test all configured providers
+  - **Configure only the providers you need** - others will be automatically disabled
 
 ## Deployment Checklist
 
