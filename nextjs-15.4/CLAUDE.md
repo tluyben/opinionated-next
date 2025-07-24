@@ -31,8 +31,9 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 - ✅ **MUST fix ALL TypeScript errors** before continuing
 - ✅ **No exceptions** - TypeScript must compile cleanly
 - ✅ **Faster than build** - use for quick validation
-- ✅ **Run tests after implementing features** - use `npx vitest run` to verify
+- ✅ **Run tests after implementing features** - use `npm run test` to verify
 - ✅ **Write tests FIRST for new features** - follow TDD approach
+- ✅ **UPDATE README.md** after major feature additions or changes
 
 ### DATABASE SCHEMA CHANGES
 - Database schema is defined in `./src/lib/db/schema.ts`
@@ -69,7 +70,7 @@ This project includes pre-installed and configured:
 
 - Next.js 15.4 with App Router
 - TypeScript with strict configuration
-- Tailwind CSS with shadcn/ui
+- Tailwind CSS with shadcn/ui (ALL 45+ components pre-installed)
 - Drizzle ORM with better-sqlite3
 - NextAuth.js for authentication
 - React Email for email templates
@@ -94,6 +95,19 @@ This project includes pre-installed and configured:
 - `./vitest.config.mjs` - Vitest configuration (locked)
 - `./vitest.setup.ts` - Test setup and mocks
 - `./playwright.config.ts` - Playwright configuration (locked)
+
+## Pre-installed shadcn/ui Components
+
+All 45+ shadcn/ui components are pre-installed and ready to use:
+
+- **Layout**: Accordion, Alert, Alert Dialog, Aspect Ratio, Avatar, Card, Collapsible, Dialog, Drawer, Separator, Sheet, Tabs
+- **Forms**: Button, Checkbox, Form, Input, Input OTP, Label, Radio Group, Select, Slider, Switch, Textarea, Toggle, Toggle Group
+- **Data Display**: Badge, Calendar, Chart, Progress, Skeleton, Table, Tooltip
+- **Navigation**: Breadcrumb, Context Menu, Dropdown Menu, Menubar, Navigation Menu, Pagination
+- **Feedback**: Alert, Sonner (Toast), Hover Card, Popover, Tooltip
+- **Utility**: Command, Resizable, Scroll Area, Carousel
+
+Import from `@/components/ui/[component-name]`
 
 ## Development Tools
 
@@ -232,6 +246,17 @@ npm run test
 8. Maintain TypeScript strict compliance
 9. Test on both light and dark themes
 10. **Run tests before committing**: Ensure all tests pass
+11. **Update README.md**: Keep user documentation current with changes
+
+### README.md Maintenance
+
+The README.md file is the primary documentation for users. Update it when:
+- Adding new features or functionality
+- Changing environment variables
+- Modifying setup instructions
+- Adding new scripts or commands
+- Changing deployment procedures
+- Adding new dependencies or integrations
 
 ## Environment Variables Required
 

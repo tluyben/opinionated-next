@@ -5,7 +5,7 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 
 ## Tech Stack
 - **Next.js 15.4** with TypeScript
-- **shadcn/ui** for UI components
+- **shadcn/ui** - ALL components pre-installed (45+ components)
 - **React** with latest features
 - **Drizzle ORM** with SQLite
 - **better-sqlite3** as the database driver
@@ -45,7 +45,8 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 ## Project Structure
 ```
 nextjs-15.4/
-├── CLAUDE.md (Project documentation and constraints)
+├── README.md (User-facing documentation - REQUIRED)
+├── CLAUDE.md (AI assistant constraints and guidelines)
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/
@@ -65,7 +66,7 @@ nextjs-15.4/
 │   │   ├── layout.tsx
 │   │   └── page.tsx (landing)
 │   ├── components/
-│   │   ├── ui/ (shadcn)
+│   │   ├── ui/ (ALL 45+ shadcn components)
 │   │   ├── auth/
 │   │   ├── dashboard/
 │   │   ├── landing/
@@ -410,14 +411,15 @@ DEV_IMPERSONATION_TOKEN="your-dev-token-here"
 
 4. **Setup shadcn/ui**
    ```bash
-   npx shadcn-ui@latest init
-   npx shadcn-ui@latest add button card input label form
+   npx shadcn@latest init
+   npx shadcn@latest add --all  # Install ALL components
    ```
 
 5. **Create Required Configuration Files**
    ```bash
    # Create .gitignore and .dockerignore files (templates provided below)
    # Create vitest.config.mjs, vitest.setup.ts, and playwright.config.ts
+   # Create README.md for user documentation (template provided below)
    ```
 
 6. **Generate Database Schema and Migrations**
@@ -551,10 +553,84 @@ logs
 /uploads
 ```
 
+### README.md Template
+Each nextjs-xx.x directory MUST include a README.md file for users:
+
+```markdown
+# Next.js 15.4 Opinionated Starter
+
+A production-ready Next.js starter with authentication, database, testing, and more.
+
+## Features
+
+- 🚀 **Next.js 15.4** with App Router and TypeScript
+- 🎨 **UI Components** - All 45+ shadcn/ui components pre-installed
+- 🔐 **Authentication** - Email/password + OAuth (Google, GitHub, Meta, Apple)
+- 💾 **Database** - SQLite with Drizzle ORM
+- 📧 **Email** - SMTP integration with React Email templates
+- 📱 **SMS** - Twilio integration
+- 📁 **File Storage** - S3 compatible with database fallback
+- 🧪 **Testing** - Vitest + Testing Library + Playwright
+- 🎯 **Type Safe** - Full TypeScript with strict mode
+- 📱 **Mobile First** - Responsive design with mobile optimizations
+- 🌙 **Dark Mode** - Built-in theme switching
+- 🔧 **Developer Tools** - User impersonation for testing
+- 🐳 **Docker Ready** - Production Docker setup included
+
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp env.example .env
+
+# Run database migrations
+npm run db:migrate
+
+# Create admin user
+npm run create-admin
+
+# Start development server
+npm run dev
+```
+
+## Available Scripts
+
+```bash
+npm run dev          # Development server (0.0.0.0:3000)
+npm run build        # Production build
+npm run start        # Production server
+npm run lint         # Run ESLint
+npm run check        # TypeScript check
+npm run test         # Run tests
+npm run test:watch   # Run tests in watch mode
+npm run test:e2e     # Run E2E tests
+```
+
+## Environment Variables
+
+See `env.example` for all required environment variables.
+
+## Testing
+
+```bash
+npm run test         # Unit/integration tests
+npm run test:watch   # TDD mode
+npm run test:e2e     # End-to-end tests
+```
+
+## Deployment
+
+See deployment documentation for Docker and production setup.
+```
+
 ## Important Reminders
 
 - **DO NOT initialize git repository** in nextjs-xx.x directories
 - **ALWAYS create .gitignore and .dockerignore** files using provided templates
+- **ALWAYS create README.md** for user documentation
 - **Database is ALWAYS named `content.db`** - never dev.db, prod.db, or other names
 - **Always generate and run migrations** when making schema changes
 - **Use SQLite timestamp format** with `strftime('%s', 'now')` for default values
