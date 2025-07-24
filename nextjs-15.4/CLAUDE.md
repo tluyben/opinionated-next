@@ -7,16 +7,19 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 ### ALLOWED OPERATIONS
 - ✅ Edit files inside `./src/` directory only
 - ✅ Add new files inside `./src/` directory only
+- ✅ Create test files (`*.test.ts`, `*.test.tsx`) alongside source files
 - ✅ Read any file for understanding
 - ✅ Use existing dependencies and libraries
+- ✅ Write and run tests using Vitest and Testing Library
 
 ### FORBIDDEN OPERATIONS
 - ❌ **NEVER** install new packages or dependencies
-- ❌ **NEVER** modify `package.json`
 - ❌ **NEVER** modify `tsconfig.json`
 - ❌ **NEVER** modify `tailwind.config.js`
 - ❌ **NEVER** modify `next.config.js`
 - ❌ **NEVER** modify `drizzle.config.ts`
+- ❌ **NEVER** modify `vitest.config.ts` (testing configuration is locked)
+- ❌ **NEVER** modify `playwright.config.ts` (E2E configuration is locked)
 - ❌ **NEVER** edit files in `./drizzle/migrations/` (auto-generated)
 - ❌ **NEVER** create or modify Docker files
 - ❌ **NEVER** modify configuration files in root directory
@@ -28,6 +31,8 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 - ✅ **MUST fix ALL TypeScript errors** before continuing
 - ✅ **No exceptions** - TypeScript must compile cleanly
 - ✅ **Faster than build** - use for quick validation
+- ✅ **Run tests after implementing features** - use `npx vitest run` to verify
+- ✅ **Write tests FIRST for new features** - follow TDD approach
 
 ### DATABASE SCHEMA CHANGES
 - Database schema is defined in `./src/lib/db/schema.ts`
@@ -56,6 +61,7 @@ This starter is **OPINIONATED** and follows strict conventions:
 5. **Authentication**: Session-based with role support (user/admin)
 6. **Styling**: Tailwind CSS with shadcn/ui components
 7. **Theme**: Dark mode as default with light mode toggle
+8. **Test-Driven Development**: Write tests first, then implementation
 
 ## Available Dependencies
 
@@ -70,6 +76,9 @@ This project includes pre-installed and configured:
 - Multer for file uploads
 - Twilio for SMS
 - Toad for job queues
+- Vitest for unit/integration testing
+- Testing Library for component testing
+- Playwright for E2E testing
 - All necessary type definitions
 
 ## File Structure
@@ -80,6 +89,11 @@ This project includes pre-installed and configured:
 - `./src/lib/db/schema.ts` - Database schema definitions
 - `./src/lib/storage/` - File storage utilities (S3/database fallback)
 - `./src/types/` - TypeScript type definitions
+- `./src/**/*.test.ts(x)` - Test files co-located with source files
+- `./tests/e2e/` - Playwright E2E tests
+- `./vitest.config.mjs` - Vitest configuration (locked)
+- `./vitest.setup.ts` - Test setup and mocks
+- `./playwright.config.ts` - Playwright configuration (locked)
 
 ## Development Tools
 
@@ -124,16 +138,100 @@ http://localhost:3000/database?token=DEV_TOKEN&user=REGULAR_USER_ID
 2. Click on the `users` table to see all user IDs and roles
 3. Copy the IDs you need for testing different scenarios
 
+## Testing Strategy
+
+### Test-Driven Development (TDD)
+1. **Write failing test first** - red phase
+2. **Implement minimal code to pass** - green phase
+3. **Refactor while keeping tests green** - refactor phase
+
+### Testing Commands
+**IMPORTANT**: The package.json MUST include these test scripts:
+```json
+{
+  "scripts": {
+    // ... existing scripts ...
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install"
+  }
+}
+```
+
+Usage:
+```bash
+npm run test           # Run all unit/integration tests once
+npm run test:watch     # Run tests in watch mode (TDD workflow)
+npm run test:ui        # Open Vitest UI for debugging
+npm run test:coverage  # Run tests with coverage report
+npm run test:e2e       # Run Playwright E2E tests
+npm run test:e2e:ui    # Run Playwright tests with UI
+npm run test:e2e:install # Install Playwright browsers (first time)
+```
+
+**Alternative**: If package.json cannot be modified, use direct npx commands:
+```bash
+npx vitest run         # Run all tests once
+npx vitest             # Watch mode (TDD)
+npx vitest --ui        # UI mode
+npx vitest run --coverage # Coverage
+npx playwright test    # E2E tests
+npx playwright test --ui # E2E with UI
+```
+
+### Test Organization
+- **Unit tests**: Co-located with source files (`file.test.ts`)
+- **Component tests**: Co-located with components (`component.test.tsx`)
+- **E2E tests**: In `./tests/e2e/` directory
+- **Test utilities**: Can be added in `./src/lib/test-utils/`
+
+### Testing Best Practices
+1. **Mock external dependencies** - database, APIs, services
+2. **Test behavior, not implementation** - focus on user outcomes
+3. **Use Testing Library queries** - prefer accessible queries
+4. **Keep tests focused** - one behavior per test
+5. **Use descriptive test names** - should read like documentation
+
+### TDD Example Workflow
+```bash
+# 1. Start test watcher
+npm run test:watch
+
+# 2. Write failing test (red phase)
+# Create src/lib/validators.test.ts
+# Write test for email validation
+
+# 3. Run npm run check to ensure no TypeScript errors
+npm run check
+
+# 4. Implement minimal code to pass (green phase)
+# Create src/lib/validators.ts
+# Implement email validation
+
+# 5. Refactor while keeping tests green
+# Improve implementation
+# Tests auto-run and stay green
+
+# 6. Run full test suite before committing
+npm run test
+```
+
 ## Development Guidelines
 
 1. **TypeScript First**: Run `npm run check` after EVERY change - no exceptions
-2. **Test with impersonation**: Use the middleware to test as different user roles
-3. Follow existing code patterns and conventions
-4. Use existing components from shadcn/ui
-5. Implement new features using Server Actions
-6. Ensure mobile responsiveness for all UI
-7. Maintain TypeScript strict compliance
-8. Test on both light and dark themes
+2. **TDD Workflow**: Write tests first, then implementation
+3. **Test with impersonation**: Use the middleware to test as different user roles
+4. Follow existing code patterns and conventions
+5. Use existing components from shadcn/ui
+6. Implement new features using Server Actions
+7. Ensure mobile responsiveness for all UI
+8. Maintain TypeScript strict compliance
+9. Test on both light and dark themes
+10. **Run tests before committing**: Ensure all tests pass
 
 ## Environment Variables Required
 

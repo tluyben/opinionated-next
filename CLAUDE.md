@@ -16,6 +16,9 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 - **React Email** for email templates
 - **Docker** with Caddy reverse proxy
 - **OAuth** providers: Google, Meta, Apple, GitHub
+- **Vitest** for unit and integration testing (TDD)
+- **Testing Library** for component testing
+- **Playwright** for E2E testing
 
 ## Architecture Principles
 
@@ -29,6 +32,15 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 - Collapsible left sidebar for dashboard navigation on mobile
 - Touch-friendly UI elements and proper spacing
 - Optimized layouts for all screen sizes
+
+### Test-Driven Development (TDD)
+- **Write tests FIRST, then implementation** - red-green-refactor cycle
+- **Unit tests** for utilities, server actions, and business logic
+- **Component tests** for UI components using Testing Library
+- **Integration tests** for API routes and database operations
+- **E2E tests** for critical user flows with Playwright
+- **Minimum 80% code coverage** for non-UI code
+- **Test files co-located** with source files (`*.test.ts`, `*.test.tsx`)
 
 ## Project Structure
 ```
@@ -77,15 +89,20 @@ nextjs-15.4/
 ├── drizzle/
 │   └── migrations/ (AUTO-GENERATED - DO NOT EDIT)
 ├── emails/ (React Email templates)
+├── tests/
+│   └── e2e/ (Playwright E2E tests)
 ├── docker-compose.yml
 ├── docker-compose.dev.yml
 ├── Dockerfile
 ├── Caddyfile
-├── package.json (LOCKED - DO NOT EDIT)
+├── package.json (includes all necessary scripts - see below)
 ├── tsconfig.json (LOCKED - DO NOT EDIT)
 ├── tailwind.config.js (LOCKED - DO NOT EDIT)
 ├── next.config.js (LOCKED - DO NOT EDIT)
 ├── drizzle.config.ts (LOCKED - DO NOT EDIT)
+├── vitest.config.mjs (Vitest configuration)
+├── vitest.setup.ts (Test setup file)
+├── playwright.config.ts (Playwright configuration)
 ├── .gitignore (REQUIRED - DO NOT EDIT)
 └── .dockerignore (REQUIRED - DO NOT EDIT)
 ```
@@ -231,6 +248,15 @@ CREATE TABLE files (
 - Development Docker Compose for local development
 - Environment-specific configurations
 
+### Testing Strategy
+- **Unit Tests**: Server actions, utilities, business logic
+- **Component Tests**: React components with Testing Library
+- **Integration Tests**: Database operations, API endpoints
+- **E2E Tests**: Critical user flows (auth, payments, core features)
+- **Test Organization**: Co-located with source files
+- **Mocking**: Database and external services in tests
+- **CI/CD Integration**: Tests run automatically on push
+
 ## Custom Scripts
 
 ### Migration Generation
@@ -259,6 +285,32 @@ npm run start        # Start production server on 0.0.0.0:3000
 npm run lint         # Run ESLint
 npm run type-check   # Run TypeScript check
 npm run check        # Quick TypeScript check (faster than build)
+```
+
+### Testing Commands
+**IMPORTANT**: Each nextjs-xx.x project MUST include these test scripts in package.json:
+```json
+"scripts": {
+  // ... existing scripts ...
+  "test": "vitest run",
+  "test:watch": "vitest",
+  "test:ui": "vitest --ui",
+  "test:coverage": "vitest run --coverage",
+  "test:e2e": "playwright test",
+  "test:e2e:ui": "playwright test --ui",
+  "test:e2e:install": "playwright install"
+}
+```
+
+Usage:
+```bash
+npm run test           # Run all unit/integration tests once
+npm run test:watch     # Run tests in watch mode (TDD)
+npm run test:ui        # Open Vitest UI
+npm run test:coverage  # Run tests with coverage report
+npm run test:e2e       # Run Playwright E2E tests
+npm run test:e2e:ui    # Run Playwright tests with UI
+npm run test:e2e:install # Install Playwright browsers (first time)
 ```
 
 **CRITICAL**: The development server MUST always bind to `0.0.0.0:3000` (not localhost) to ensure accessibility from Docker containers and external connections. This is enforced in the Next.js configuration.
@@ -316,6 +368,7 @@ DEV_IMPERSONATION_TOKEN="your-dev-token-here"
    npx create-next-app@latest nextjs-15.4 --typescript --tailwind --eslint --app
    cd nextjs-15.4
    # DO NOT run git init - this directory is not a git repository
+   # IMPORTANT: Update package.json to include all required scripts (see Testing Commands section)
    ```
 
 2. **Install Dependencies**
@@ -329,6 +382,13 @@ DEV_IMPERSONATION_TOKEN="your-dev-token-here"
    npm install twilio
    npm install toad-scheduler
    npm install lucide-react class-variance-authority clsx tailwind-merge
+   ```
+
+3. **Install Testing Dependencies**
+   ```bash
+   npm install -D vitest @vitest/ui @testing-library/react @testing-library/jest-dom jsdom
+   npm install -D @testing-library/user-event @types/node
+   npm install -D playwright @playwright/test
    ```
 
    **🚨 CRITICAL: Security Audit Requirements**
@@ -348,25 +408,26 @@ DEV_IMPERSONATION_TOKEN="your-dev-token-here"
    
    **Always verify with `npm run build` that the application builds successfully.**
 
-3. **Setup shadcn/ui**
+4. **Setup shadcn/ui**
    ```bash
    npx shadcn-ui@latest init
    npx shadcn-ui@latest add button card input label form
    ```
 
-4. **Create Required Configuration Files**
+5. **Create Required Configuration Files**
    ```bash
    # Create .gitignore and .dockerignore files (templates provided below)
+   # Create vitest.config.mjs, vitest.setup.ts, and playwright.config.ts
    ```
 
-5. **Generate Database Schema and Migrations**
+6. **Generate Database Schema and Migrations**
    ```bash
    npm run db:generate
    npm run db:migrate
    npm run create-admin  # Creates default admin user
    ```
 
-6. **Setup Docker (Optional)**
+7. **Setup Docker (Optional)**
    ```bash
    docker-compose -f docker-compose.dev.yml up -d  # Development
    docker-compose up -d                             # Production
@@ -383,6 +444,10 @@ node_modules/
 
 # Testing
 /coverage
+*.lcov
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
 # Next.js
 /.next/
@@ -516,6 +581,9 @@ logs
 - **Security audit must show minimal vulnerabilities** - run `npm audit` and fix all production-affecting issues
 - **Ensure proper error handling** throughout the application
 - **Always use `devIndicators: false`** in next.config.js to hide the annoying development indicator button
+- **Follow TDD workflow** - write failing tests first, then implement code to pass
+- **Run tests before committing** - ensure all tests pass before pushing code
+- **Maintain test coverage** - aim for 80%+ coverage on business logic
 
 ## Deployment Checklist
 
@@ -536,6 +604,10 @@ logs
 - [ ] Development impersonation disabled in production
 - [ ] Server Actions working correctly (no custom APIs unless requested)
 - [ ] Error monitoring configured
+- [ ] All unit tests passing
+- [ ] All integration tests passing
+- [ ] Critical E2E tests passing
+- [ ] Test coverage meets minimum requirements (80%+ for business logic)
 
 This project serves as a comprehensive starting point for modern SaaS applications, with all the essential features and integrations needed to launch quickly while maintaining high code quality and user experience standards.
 
@@ -555,16 +627,19 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 ### ALLOWED OPERATIONS
 - ✅ Edit files inside `./src/` directory only
 - ✅ Add new files inside `./src/` directory only
+- ✅ Create test files (`*.test.ts`, `*.test.tsx`) alongside source files
 - ✅ Read any file for understanding
 - ✅ Use existing dependencies and libraries
+- ✅ Write and run tests using Vitest and Testing Library
 
 ### FORBIDDEN OPERATIONS
 - ❌ **NEVER** install new packages or dependencies
-- ❌ **NEVER** modify `package.json`
 - ❌ **NEVER** modify `tsconfig.json`
 - ❌ **NEVER** modify `tailwind.config.js`
 - ❌ **NEVER** modify `next.config.js`
 - ❌ **NEVER** modify `drizzle.config.ts`
+- ❌ **NEVER** modify `vitest.config.mjs` (testing configuration is locked)
+- ❌ **NEVER** modify `playwright.config.ts` (E2E configuration is locked)
 - ❌ **NEVER** edit files in `./drizzle/migrations/` (auto-generated)
 - ❌ **NEVER** create or modify Docker files
 - ❌ **NEVER** modify configuration files in root directory
@@ -576,6 +651,8 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 - ✅ **MUST fix ALL TypeScript errors** before continuing
 - ✅ **No exceptions** - TypeScript must compile cleanly
 - ✅ **Faster than build** - use for quick validation
+- ✅ **Run tests after implementing features** - use `npm run test` to verify
+- ✅ **Write tests FIRST for new features** - follow TDD approach
 
 ### DATABASE SCHEMA CHANGES
 - Database schema is defined in `./src/lib/db/schema.ts`
