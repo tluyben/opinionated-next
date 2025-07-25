@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { generateId } from '@/lib/utils';
 import { createSession, deleteSession } from '@/lib/auth/session';
+import { handleServerError } from '@/lib/error-tracking/server-handler';
 import crypto from 'crypto';
 
 export async function loginAction(formData: FormData) {
@@ -31,7 +32,8 @@ export async function loginAction(formData: FormData) {
 
     await createSession(user[0].id);
   } catch (error) {
-    console.error('Login error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    await handleServerError(err, { action: 'loginAction', tags: ['auth'] });
     return { error: 'Something went wrong' };
   }
   
@@ -74,7 +76,8 @@ export async function signupAction(formData: FormData) {
 
     await createSession(userId);
   } catch (error) {
-    console.error('Signup error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    await handleServerError(err, { action: 'signupAction', tags: ['auth'] });
     return { error: 'Something went wrong' };
   }
   
@@ -124,7 +127,8 @@ export async function requestPasswordResetAction(formData: FormData) {
 
     return { success: true };
   } catch (error) {
-    console.error('Password reset request error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    await handleServerError(err, { action: 'requestPasswordResetAction', tags: ['auth', 'password-reset'] });
     return { error: 'Something went wrong' };
   }
 }
@@ -190,7 +194,8 @@ export async function resetPasswordAction(formData: FormData) {
 
     return { success: true };
   } catch (error) {
-    console.error('Password reset error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
+    await handleServerError(err, { action: 'resetPasswordAction', tags: ['auth', 'password-reset'] });
     return { error: 'Something went wrong' };
   }
 }

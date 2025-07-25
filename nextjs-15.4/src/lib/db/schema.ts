@@ -127,6 +127,45 @@ export const passwordResetTokens = sqliteTable('password_reset_tokens', {
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
+// Issues/Error tracking table
+export const issues = sqliteTable('issues', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  stack: text('stack'), // Stack trace
+  level: text('level', { 
+    enum: ['error', 'warning', 'info', 'debug'] 
+  }).notNull().default('error'),
+  status: text('status', { 
+    enum: ['open', 'closed', 'resolved'] 
+  }).notNull().default('open'),
+  fingerprint: text('fingerprint').notNull(), // For grouping similar errors
+  count: integer('count').notNull().default(1), // Number of occurrences
+  url: text('url'), // Page where error occurred
+  userAgent: text('user_agent'), // Browser/client info
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }), // User who encountered error
+  environment: text('environment').notNull().default('production'), // development/production
+  tags: text('tags'), // JSON array of tags
+  metadata: text('metadata'), // Additional context as JSON
+  firstSeenAt: integer('first_seen_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  resolvedAt: integer('resolved_at', { mode: 'timestamp' }),
+  resolvedBy: text('resolved_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
+// Admin settings for error notifications
+export const adminSettings = sqliteTable('admin_settings', {
+  id: text('id').primaryKey(),
+  emailNotificationsEnabled: integer('email_notifications_enabled', { mode: 'boolean' }).default(true),
+  notificationLevel: text('notification_level', { 
+    enum: ['error', 'warning', 'info', 'debug'] 
+  }).notNull().default('error'), // Minimum level to send notifications
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
@@ -147,3 +186,7 @@ export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type NewVerificationToken = typeof verificationTokens.$inferInsert;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+export type Issue = typeof issues.$inferSelect;
+export type NewIssue = typeof issues.$inferInsert;
+export type AdminSettings = typeof adminSettings.$inferSelect;
+export type NewAdminSettings = typeof adminSettings.$inferInsert;

@@ -83,15 +83,19 @@ This project includes pre-installed and configured:
 - Playwright for E2E testing
 - LLM Integration (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
 - Stripe Payments (subscriptions, one-time payments, webhooks)
+- Error Tracking System (Sentry-like monitoring with admin dashboard)
 - All necessary type definitions
 
 ## File Structure
 
 - `./src/app/` - Next.js App Router pages
 - `./src/components/` - React components (including shadcn/ui)
+- `./src/components/admin/` - Admin-only components for issues and settings
+- `./src/components/error-tracking/` - Error boundary and tracking components
 - `./src/components/llm/` - LLM chat components
 - `./src/lib/` - Utilities, database, auth, actions, storage
 - `./src/lib/db/schema.ts` - Database schema definitions
+- `./src/lib/error-tracking/` - Error logging and monitoring services
 - `./src/lib/storage/` - File storage utilities (S3/database fallback)
 - `./src/lib/llm/` - LLM client and providers
 - `./src/lib/payments/` - Payment client and configuration
@@ -239,6 +243,116 @@ npm run check
 # 6. Run full test suite before committing
 npm run test
 ```
+
+## Error Tracking System
+
+The project includes a comprehensive Sentry-like error tracking system for monitoring application health and issues.
+
+### Error Capture System
+
+- **Global Error Boundary** - Catches all React component errors with recovery options
+- **Client-Side Handler** - Captures unhandled promises, JavaScript errors, and resource failures
+- **Server-Side Handler** - Catches server errors, API route errors, and uncaught exceptions
+- **Manual Reporting** - Utilities for developers to manually report issues
+
+### Admin Dashboard
+
+**CRITICAL**: Error tracking features are admin-only and require admin role access.
+
+#### Available Pages
+
+- **Issues Dashboard** (`/dashboard/admin/issues`) - Complete issue listing with filtering and search
+- **Issue Details** (`/dashboard/admin/issues/[id]`) - Detailed error information with stack traces  
+- **Admin Settings** (`/dashboard/admin/settings`) - Configure email notifications and severity levels
+
+#### Features
+
+- **Smart Grouping** - Similar errors grouped by fingerprint with occurrence counts
+- **Severity Levels** - Error, Warning, Info, Debug with proper color coding and filtering
+- **Status Management** - Mark issues as Open, Resolved, or Closed with admin controls
+- **Advanced Search** - Filter by status, level, and search through error messages and titles
+- **Rich Context** - Stack traces, user agents, URLs, user information, and custom metadata
+
+### Email Notifications
+
+- **Automatic Alerts** - New errors trigger configurable email notifications to all admin users
+- **Severity Filtering** - Only send notifications for specified severity levels (Error, Warning, Info, Debug)
+- **SMTP Integration** - Full SMTP support with console fallback for development
+- **Beautiful Templates** - HTML email templates with proper styling and error context
+
+### Usage Examples
+
+#### Error Boundary
+```tsx
+import { ErrorBoundary } from '@/components/error-tracking/error-boundary';
+
+<ErrorBoundary>
+  <YourComponent />
+</ErrorBoundary>
+```
+
+#### Manual Error Reporting
+```tsx
+import { useErrorReporting } from '@/components/error-tracking/error-boundary';
+
+const { reportError } = useErrorReporting();
+
+try {
+  // Some operation
+} catch (error) {
+  await reportError(error, {
+    level: 'error',
+    tags: ['user-action'],
+    metadata: { context: 'additional info' }
+  });
+}
+```
+
+#### Server-Side Error Handling
+```tsx
+import { handleServerError } from '@/lib/error-tracking/server-handler';
+
+export async function myServerAction() {
+  try {
+    // Server operation
+  } catch (error) {
+    await handleServerError(error, {
+      action: 'myServerAction',
+      tags: ['server-action']
+    });
+    throw error;
+  }
+}
+```
+
+### Database Tables
+
+The error tracking system uses two additional database tables:
+
+- **issues** - Stores all error reports with metadata, status, and grouping information
+- **admin_settings** - Stores admin preferences for email notifications and severity levels
+
+### Environment Variables
+
+No additional environment variables are required. The system works with existing SMTP configuration:
+
+```env
+# Optional - for email notifications
+SMTP_HOST=""
+SMTP_PORT=""
+SMTP_USER=""
+SMTP_PASS=""
+SMTP_FROM=""
+```
+
+If SMTP is not configured, error notifications will be logged to console in development.
+
+### Development Notes
+
+- **Automatic Initialization** - Error tracking is automatically initialized in the root layout
+- **Development Mode** - Enhanced error displays and console logging for debugging
+- **Production Ready** - Optimized for production with proper error grouping and notifications
+- **Admin Access Only** - All error tracking features require admin role for security
 
 ## Development Guidelines
 

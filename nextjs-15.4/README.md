@@ -19,6 +19,7 @@ A production-ready Next.js starter with authentication, database, testing, and m
 - 🐳 **Docker Ready** - Production Docker setup included
 - 🤖 **LLM Integration** - Multi-provider streaming chat (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
 - 💳 **Payments** - Stripe integration with subscriptions and one-time payments
+- 🚨 **Error Tracking** - Comprehensive Sentry-like error monitoring and admin dashboard
 
 ## Quick Start
 
@@ -310,6 +311,39 @@ src/
 │   └── storage/     # File storage utilities
 ├── middleware.ts    # Middleware (dev impersonation)
 └── types/          # TypeScript type definitions
+```
+
+## Error Tracking
+
+This starter includes a comprehensive error tracking system similar to Sentry for monitoring application health.
+
+### Features
+
+- **Multi-Level Capture** - Client-side, server-side, and React component error boundaries
+- **Smart Grouping** - Similar errors grouped by fingerprint to prevent noise
+- **Admin Dashboard** - Complete issue management at `/dashboard/admin/issues`
+- **Email Alerts** - Configurable notifications for admin users
+- **Rich Context** - Stack traces, user info, URLs, and custom metadata
+
+### Admin Access
+
+All error tracking features require admin role access:
+
+- **Issues Dashboard** - View, filter, and search all application errors
+- **Issue Details** - Detailed error information with stack traces and context
+- **Admin Settings** - Configure email notifications and severity levels
+
+### Automatic Setup
+
+Error tracking is automatically initialized and requires no additional configuration. SMTP setup is optional for email notifications:
+
+```env
+# Optional - for error notifications
+SMTP_HOST="your-smtp-host"
+SMTP_PORT="587"
+SMTP_USER="your-smtp-user"
+SMTP_PASS="your-smtp-password"
+SMTP_FROM="errors@yourdomain.com"
 ```
 
 ## Deployment

@@ -21,6 +21,7 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 - **Playwright** for E2E testing
 - **LLM Integration** - Multi-provider streaming chat (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
 - **Payments** - Stripe integration with subscriptions and one-time payments
+- **Error Tracking** - Comprehensive Sentry-like error monitoring and management system
 
 ## Architecture Principles
 
@@ -58,6 +59,9 @@ nextjs-15.4/
 │   │   │   ├── dashboard/
 │   │   │   ├── profile/
 │   │   │   ├── settings/
+│   │   │   ├── admin/
+│   │   │   │   ├── issues/ (Error tracking dashboard)
+│   │   │   │   └── settings/ (Admin configuration)
 │   │   │   └── demo/
 │   │   │       ├── llm/
 │   │   │       └── payments/
@@ -80,6 +84,8 @@ nextjs-15.4/
 │   │   ├── llm/ (LLM chat components)
 │   │   ├── mobile/ (mobile-specific components)
 │   │   ├── payments/ (Payment components)
+│   │   ├── admin/ (Admin-only components for issues, settings)
+│   │   ├── error-tracking/ (Error boundary and tracking components)
 │   │   └── theme/
 │   ├── lib/
 │   │   ├── db/
@@ -91,6 +97,7 @@ nextjs-15.4/
 │   │   ├── queue/
 │   │   ├── llm/ (LLM client and providers)
 │   │   ├── payments/ (Payment client and config)
+│   │   ├── error-tracking/ (Error logging and tracking services)
 │   │   ├── actions/ (server actions)
 │   │   └── utils/
 │   ├── middleware.ts (dev user impersonation)
@@ -245,6 +252,45 @@ CREATE TABLE invoices (
 );
 ```
 
+### Issues Table (Error Tracking)
+```sql
+CREATE TABLE issues (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  stack TEXT, -- Stack trace
+  level TEXT CHECK(level IN ('error', 'warning', 'info', 'debug')) DEFAULT 'error',
+  status TEXT CHECK(status IN ('open', 'closed', 'resolved')) DEFAULT 'open',
+  fingerprint TEXT NOT NULL, -- For grouping similar errors
+  count INTEGER DEFAULT 1, -- Number of occurrences
+  url TEXT, -- Page where error occurred
+  user_agent TEXT, -- Browser/client info
+  user_id TEXT, -- User who encountered error
+  environment TEXT DEFAULT 'production', -- development/production
+  tags TEXT, -- JSON array of tags
+  metadata TEXT, -- Additional context as JSON
+  first_seen_at INTEGER NOT NULL, -- Unix timestamp
+  last_seen_at INTEGER NOT NULL, -- Unix timestamp
+  resolved_at INTEGER, -- Unix timestamp
+  resolved_by TEXT, -- Admin who resolved
+  created_at INTEGER NOT NULL, -- Unix timestamp
+  updated_at INTEGER NOT NULL, -- Unix timestamp
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
+);
+```
+
+### Admin Settings Table
+```sql
+CREATE TABLE admin_settings (
+  id TEXT PRIMARY KEY,
+  email_notifications_enabled BOOLEAN DEFAULT TRUE,
+  notification_level TEXT CHECK(notification_level IN ('error', 'warning', 'info', 'debug')) DEFAULT 'error',
+  created_at INTEGER NOT NULL, -- Unix timestamp
+  updated_at INTEGER NOT NULL -- Unix timestamp
+);
+```
+
 ## Key Features
 
 ### Authentication System
@@ -347,6 +393,18 @@ CREATE TABLE invoices (
 - **Customer Portal**: Manage payment methods and invoices
 - **Demo Page**: `/demo/payments` showcases payment flows
 - **Database Tracking**: All payments and subscriptions tracked locally
+
+### Error Tracking System
+- **Comprehensive Error Monitoring**: Sentry-like error tracking for production applications
+- **Multi-Level Capture**: Client-side, server-side, and React component error boundaries
+- **Smart Grouping**: Similar errors grouped by fingerprint to prevent noise
+- **Severity Levels**: Error, Warning, Info, Debug with proper filtering and alerts
+- **Admin Dashboard**: Complete issue management interface at `/dashboard/admin/issues`
+- **Email Notifications**: Configurable email alerts for admin users when errors occur
+- **Status Management**: Mark issues as Open, Resolved, or Closed with admin controls
+- **Rich Context**: Stack traces, user agents, URLs, and custom metadata capture
+- **Search & Filter**: Advanced filtering by status, level, and text search
+- **Development Tools**: Enhanced error displays and console logging in dev mode
 
 ## Custom Scripts
 
