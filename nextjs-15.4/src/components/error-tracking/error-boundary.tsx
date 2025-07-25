@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { logError } from '@/lib/error-tracking/logger';
-import { getSession } from '@/lib/auth/session';
+import { logError } from '@/lib/error-tracking/client-logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -29,16 +28,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   async componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     try {
-      // Get current user info if available
-      let userId: string | undefined;
-      try {
-        const session = await getSession();
-        userId = session?.id;
-      } catch {
-        // Ignore session errors in error boundary
-      }
-
-      // Log the error
+      // Log the error (userId will be determined server-side via cookies)
       const errorId = await logError(
         error.name || 'React Error',
         error.message,
@@ -47,7 +37,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           stack: error.stack,
           url: typeof window !== 'undefined' ? window.location.href : undefined,
           userAgent: typeof window !== 'undefined' ? navigator.userAgent : undefined,
-          userId,
           tags: ['react-error-boundary'],
           metadata: {
             componentStack: errorInfo.componentStack,
@@ -57,7 +46,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         }
       );
 
-      this.setState({ errorId });
+      this.setState({ errorId: errorId || undefined });
       
       console.error('Error caught by boundary:', error);
       console.error('Component stack:', errorInfo.componentStack);
@@ -158,14 +147,6 @@ export function useErrorReporting() {
       metadata?: Record<string, any>;
     }) => {
       try {
-        let userId: string | undefined;
-        try {
-          const session = await getSession();
-          userId = session?.id;
-        } catch {
-          // Ignore session errors
-        }
-
         return await logError(
           error.name || 'Manual Report',
           error.message,
@@ -174,7 +155,6 @@ export function useErrorReporting() {
             stack: error.stack,
             url: typeof window !== 'undefined' ? window.location.href : undefined,
             userAgent: typeof window !== 'undefined' ? navigator.userAgent : undefined,
-            userId,
             tags: [...(context?.tags || []), 'manual-report'],
             metadata: {
               ...context?.metadata,

@@ -1,10 +1,11 @@
 import { requireAuth } from '@/lib/auth/session';
 import { redirect, notFound } from 'next/navigation';
+import { DashboardLayout } from '@/components/dashboard/layout';
 import { getNotificationByIdAction } from '@/lib/actions/notifications';
 import { NotificationDetails } from '@/components/admin/notification-details';
 
 interface NotificationDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function NotificationDetailPage({ params }: NotificationDetailPageProps) {
@@ -14,15 +15,18 @@ export default async function NotificationDetailPage({ params }: NotificationDet
     redirect('/dashboard');
   }
 
-  const notification = await getNotificationByIdAction(params.id);
+  const { id } = await params;
+  const notification = await getNotificationByIdAction(id);
   
   if (!notification) {
     notFound();
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <NotificationDetails notification={notification} />
-    </div>
+    <DashboardLayout>
+      <div className="container mx-auto p-6">
+        <NotificationDetails notification={notification} />
+      </div>
+    </DashboardLayout>
   );
 }

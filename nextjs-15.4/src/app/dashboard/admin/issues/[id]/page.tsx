@@ -1,10 +1,11 @@
 import { requireAuth } from '@/lib/auth/session';
 import { redirect, notFound } from 'next/navigation';
+import { DashboardLayout } from '@/components/dashboard/layout';
 import { getIssueByIdAction } from '@/lib/actions/issues';
 import { IssueDetails } from '@/components/admin/issue-details';
 
 interface IssueDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function IssueDetailPage({ params }: IssueDetailPageProps) {
@@ -14,15 +15,18 @@ export default async function IssueDetailPage({ params }: IssueDetailPageProps) 
     redirect('/dashboard');
   }
 
-  const issue = await getIssueByIdAction(params.id);
+  const { id } = await params;
+  const issue = await getIssueByIdAction(id);
   
   if (!issue) {
     notFound();
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <IssueDetails issue={issue} />
-    </div>
+    <DashboardLayout>
+      <div className="container mx-auto p-6">
+        <IssueDetails issue={issue} />
+      </div>
+    </DashboardLayout>
   );
 }

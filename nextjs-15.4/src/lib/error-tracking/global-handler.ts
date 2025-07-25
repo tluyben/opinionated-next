@@ -1,7 +1,6 @@
 'use client';
 
-import { logError } from './logger';
-import { getSession } from '@/lib/auth/session';
+import { logError } from './client-logger';
 
 let isInitialized = false;
 
@@ -15,14 +14,6 @@ export function initializeGlobalErrorHandling() {
   // Handle unhandled promise rejections
   window.addEventListener('unhandledrejection', async (event) => {
     const error = event.reason;
-    
-    let userId: string | undefined;
-    try {
-      const session = await getSession();
-      userId = session?.id;
-    } catch {
-      // Ignore session errors in error handler
-    }
 
     try {
       await logError(
@@ -33,7 +24,6 @@ export function initializeGlobalErrorHandling() {
           stack: error?.stack,
           url: window.location.href,
           userAgent: navigator.userAgent,
-          userId,
           tags: ['unhandled-promise'],
           metadata: {
             promiseRejection: true,
@@ -51,14 +41,6 @@ export function initializeGlobalErrorHandling() {
   // Handle JavaScript errors
   window.addEventListener('error', async (event) => {
     const { error, message, filename, lineno, colno } = event;
-    
-    let userId: string | undefined;
-    try {
-      const session = await getSession();
-      userId = session?.id;
-    } catch {
-      // Ignore session errors in error handler
-    }
 
     try {
       await logError(
@@ -69,7 +51,6 @@ export function initializeGlobalErrorHandling() {
           stack: error?.stack,
           url: window.location.href,
           userAgent: navigator.userAgent,
-          userId,
           tags: ['javascript-error'],
           metadata: {
             filename,
@@ -92,14 +73,6 @@ export function initializeGlobalErrorHandling() {
     
     // Only handle resource loading errors (img, script, link, etc.)
     if (target && target instanceof HTMLElement && (target.tagName === 'IMG' || target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
-      let userId: string | undefined;
-      try {
-        const session = await getSession();
-        userId = session?.id;
-      } catch {
-        // Ignore session errors in error handler
-      }
-
       try {
         const resourceUrl = (target as any).src || (target as any).href;
         
@@ -110,7 +83,6 @@ export function initializeGlobalErrorHandling() {
             level: 'warning',
             url: window.location.href,
             userAgent: navigator.userAgent,
-            userId,
             tags: ['resource-error', target.tagName.toLowerCase()],
             metadata: {
               resourceUrl,
@@ -139,14 +111,6 @@ export async function reportError(
   } = {}
 ) {
   const { level = 'error', tags = [], metadata = {} } = options;
-  
-  let userId: string | undefined;
-  try {
-    const session = await getSession();
-    userId = session?.id;
-  } catch {
-    // Ignore session errors
-  }
 
   const errorObj = error instanceof Error ? error : new Error(error);
   
@@ -159,7 +123,6 @@ export async function reportError(
         stack: errorObj.stack,
         url: typeof window !== 'undefined' ? window.location.href : undefined,
         userAgent: typeof window !== 'undefined' ? navigator.userAgent : undefined,
-        userId,
         tags: [...tags, 'manual-report'],
         metadata: {
           ...metadata,

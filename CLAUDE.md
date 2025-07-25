@@ -6,6 +6,7 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 ## Tech Stack
 - **Next.js 15.4** with TypeScript
 - **shadcn/ui** - ALL components pre-installed (45+ components)
+- **Skeleton Components** - Comprehensive loading states with pre-built skeleton patterns
 - **React** with latest features
 - **Drizzle ORM** with SQLite
 - **better-sqlite3** as the database driver
@@ -45,6 +46,13 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 - **Minimum 80% code coverage** for non-UI code
 - **Test files co-located** with source files (`*.test.ts`, `*.test.tsx`)
 
+### Loading States & UX
+- **Skeleton components REQUIRED** for all async operations - NO traditional spinners
+- **Server Actions must use skeletons** during form submissions and data mutations
+- **REST API calls must show skeleton states** while loading
+- **Pre-built skeleton patterns** for common UI layouts (tables, cards, forms, dashboards)
+- **Suspense boundaries** with skeleton fallbacks for better UX
+
 ## Project Structure
 ```
 nextjs-15.4/
@@ -77,7 +85,7 @@ nextjs-15.4/
 │   │   ├── layout.tsx
 │   │   └── page.tsx (landing)
 │   ├── components/
-│   │   ├── ui/ (ALL 45+ shadcn components)
+│   │   ├── ui/ (ALL 45+ shadcn components + skeleton components)
 │   │   ├── auth/
 │   │   ├── dashboard/
 │   │   ├── landing/
@@ -126,7 +134,41 @@ nextjs-15.4/
 └── .dockerignore (REQUIRED - DO NOT EDIT)
 ```
 
-## SQLite Timestamp Handling with Drizzle
+## 🚨 CRITICAL DATABASE & NEXT.JS REQUIREMENTS
+
+### Database Schema Changes (NEVER FORGET!)
+**MANDATORY AFTER ANY SCHEMA CHANGE - NO EXCEPTIONS:**
+```bash
+npm run db:generate && npm run db:migrate
+```
+
+**🚨 YOU ALWAYS FORGET THIS! SCHEMA CHANGES REQUIRE MIGRATIONS!**
+- **NEVER** edit the database schema without generating and running migrations
+- **NEVER** assume schema changes work without migrations
+- **ALWAYS** run both commands after ANY change to `src/lib/db/schema.ts`
+- Database will be out of sync without migrations - THIS BREAKS EVERYTHING!
+
+### Next.js 15 Dynamic Route Parameters (NEVER FORGET!)
+**MANDATORY FOR ALL DYNAMIC ROUTES - NO EXCEPTIONS:**
+```tsx
+// ❌ WRONG - This will cause errors in Next.js 15+
+export default function Page({ params }: { params: { id: string } }) {
+  const id = params.id // ERROR: params should be awaited
+}
+
+// ✅ CORRECT - Always await params
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params // REQUIRED: await params before use
+}
+```
+
+**🚨 YOU ALWAYS FORGET THIS! ALL DYNAMIC ROUTES NEED AWAIT PARAMS!**
+- **NEVER** access `params.property` directly - always `await params` first
+- **ALL** dynamic routes (`[id]`, `[slug]`, etc.) must await params
+- **searchParams** also needs to be awaited: `const searchParams = await searchParams`
+- This is a breaking change in Next.js 15+ - old code will error!
+
+### SQLite Timestamp Handling with Drizzle
 
 **CRITICAL**: When adding timestamp fields to SQLite tables with Drizzle:
 - Use `integer("column_name", { mode: "timestamp" })` for the column type
@@ -291,6 +333,164 @@ CREATE TABLE admin_settings (
 );
 ```
 
+## Skeleton Components System
+
+The project includes comprehensive skeleton loading components that MUST be used instead of traditional spinners for all async operations.
+
+### Available Skeleton Components
+
+#### Basic Skeleton Component
+```tsx
+import { Skeleton } from '@/components/ui/skeleton'
+
+// Basic skeleton for text and elements
+<Skeleton className="h-4 w-[250px]" />
+<Skeleton className="h-12 w-12 rounded-full" />
+```
+
+#### Pre-built Layout Skeletons
+```tsx
+import {
+  LoadingSkeleton,
+  PageSkeleton,
+  CardSkeleton,
+  TableSkeleton,
+  FormSkeleton,
+  DashboardSkeleton,
+  ChatSkeleton
+} from '@/components/ui/loading-skeleton'
+
+// Generic loading with variants
+<LoadingSkeleton variant="card" />
+<LoadingSkeleton variant="table" rows={5} />
+<LoadingSkeleton variant="form" />
+<LoadingSkeleton variant="dashboard" />
+<LoadingSkeleton variant="chat" />
+<LoadingSkeleton variant="list" />
+
+// Specific layout skeletons
+<PageSkeleton />
+<CardSkeleton />
+<TableSkeleton rows={10} />
+<FormSkeleton />
+<DashboardSkeleton />
+<ChatSkeleton />
+```
+
+#### Suspense Skeleton Wrappers
+```tsx
+import {
+  SuspenseSkeleton,
+  SuspenseCard,
+  SuspenseTable,
+  SuspenseForm,
+  SuspenseDashboard,
+  SuspenseChat
+} from '@/components/ui/suspense-skeleton'
+
+// Wrap async components with automatic skeleton fallbacks
+<SuspenseSkeleton variant="table" rows={5}>
+  <AsyncTableComponent />
+</SuspenseSkeleton>
+
+// Convenience wrappers for common patterns
+<SuspenseCard>
+  <AsyncCardContent />
+</SuspenseCard>
+
+<SuspenseTable rows={10}>
+  <AsyncDataTable />
+</SuspenseTable>
+
+<SuspenseForm>
+  <AsyncFormComponent />
+</SuspenseForm>
+```
+
+### Usage Guidelines
+
+#### Server Actions (REQUIRED)
+All Server Actions MUST show skeleton states during execution:
+
+```tsx
+'use client'
+import { useState, useTransition } from 'react'
+import { LoadingSkeleton } from '@/components/ui/loading-skeleton'
+import { myServerAction } from '@/lib/actions/example'
+
+export function MyForm() {
+  const [isPending, startTransition] = useTransition()
+
+  const handleSubmit = (formData: FormData) => {
+    startTransition(async () => {
+      await myServerAction(formData)
+    })
+  }
+
+  if (isPending) {
+    return <LoadingSkeleton variant="form" />
+  }
+
+  return (
+    <form action={handleSubmit}>
+      {/* Form content */}
+    </form>
+  )
+}
+```
+
+#### REST API Calls (REQUIRED)
+All REST API calls MUST show skeleton states while loading:
+
+```tsx
+'use client'
+import { useState, useEffect } from 'react'
+import { LoadingSkeleton } from '@/components/ui/loading-skeleton'
+
+export function DataTable() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchData().then(setData).finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return <LoadingSkeleton variant="table" rows={5} />
+  }
+
+  return (
+    <div>
+      {/* Actual table content */}
+    </div>
+  )
+}
+```
+
+#### Page-Level Loading
+Use Suspense boundaries with skeleton fallbacks:
+
+```tsx
+import { Suspense } from 'react'
+import { DashboardSkeleton } from '@/components/ui/loading-skeleton'
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
+  )
+}
+```
+
+### Design Patterns
+
+- **NO traditional spinners** - skeletons provide better UX by showing layout structure
+- **Match actual content** - skeleton shapes should approximate final content layout
+- **Responsive design** - all skeletons work across mobile and desktop breakpoints
+- **Consistent timing** - use same animation timing across all skeleton components
+- **Accessibility** - skeletons include proper ARIA labels and screen reader support
+
 ## Key Features
 
 ### Authentication System
@@ -329,6 +529,7 @@ CREATE TABLE admin_settings (
 - Demo pages showcasing functionality
 - Theme switcher (dark mode default)
 - Admin badge for admin users (same dashboard, different styling)
+- **🚨 CRITICAL: ALL authenticated pages MUST use `<DashboardLayout>` wrapper** - pages without this lose sidebar navigation context
 
 ### Development Tools
 - **User impersonation middleware** for development
@@ -844,7 +1045,8 @@ GOOGLE_CLIENT_SECRET="your-google-client-secret"
 - **No exceptions** - documentation updates are not optional
 - **Verify env.example** is updated when new environment variables are introduced
 - **Cross-reference** README.md with actual implemented features for accuracy
-- **Always generate and run migrations** when making schema changes
+- **🚨 ALWAYS GENERATE AND RUN MIGRATIONS** when making schema changes (`npm run db:generate && npm run db:migrate`)
+- **🚨 ALWAYS AWAIT PARAMS** in Next.js 15+ dynamic routes (`const { id } = await params`)
 - **Use SQLite timestamp format** with `strftime('%s', 'now')` for default values
 - **Create admin user** on initial setup and after database resets
 - **File storage flexibility:**

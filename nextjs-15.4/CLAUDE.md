@@ -34,17 +34,79 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 - ✅ **Run tests after implementing features** - use `npm run test` to verify
 - ✅ **Write tests FIRST for new features** - follow TDD approach
 
+### 🚨 CRITICAL: You ALWAYS Forget These!
+
+#### Database Schema Changes (NEVER FORGET!)
+**MANDATORY AFTER ANY SCHEMA CHANGE - NO EXCEPTIONS:**
+```bash
+npm run db:generate && npm run db:migrate
+```
+
+**🚨 YOU ALWAYS FORGET THIS! SCHEMA CHANGES REQUIRE MIGRATIONS!**
+- **NEVER** edit the database schema without generating and running migrations
+- **NEVER** assume schema changes work without migrations  
+- **ALWAYS** run both commands after ANY change to `./src/lib/db/schema.ts`
+- Database will be out of sync without migrations - THIS BREAKS EVERYTHING!
+- **NEVER** manually edit migration files in `./drizzle/migrations/`
+- **Migration naming:** New migrations use timestamp format (yyyyMMddHHmmss_description.sql)
+
+#### DashboardLayout for Authenticated Pages (NEVER FORGET!)
+**MANDATORY FOR ALL AUTHENTICATED PAGES - NO EXCEPTIONS:**
+```tsx
+import { DashboardLayout } from '@/components/dashboard/layout';
+
+export default function MyPage() {
+  return (
+    <DashboardLayout>
+      {/* Your page content */}
+    </DashboardLayout>
+  );
+}
+```
+
+**🚨 YOU ALWAYS FORGET THIS! ALL AUTHENTICATED PAGES NEED DASHBOARDLAYOUT!**
+- **NEVER** create authenticated pages without `<DashboardLayout>` wrapper
+- **ALL** pages after login (admin/user/authenticated) must be wrapped in `<DashboardLayout>`
+- **Pages without this lose sidebar navigation context** - users can't navigate back
+- **ALWAYS** check database page `/database` as example of correct implementation
+- **Include ALL detail pages** - `/issues/[id]`, `/notifications/[id]`, etc. need wrapping too
+
+#### Next.js 15 Dynamic Route Parameters (NEVER FORGET!)
+**MANDATORY FOR ALL DYNAMIC ROUTES - NO EXCEPTIONS:**
+```tsx
+// ❌ WRONG - This will cause errors in Next.js 15+
+export default function Page({ params }: { params: { id: string } }) {
+  const id = params.id // ERROR: params should be awaited
+}
+
+// ✅ CORRECT - Always await params
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params // REQUIRED: await params before use
+}
+
+// ✅ CORRECT - Also for searchParams
+export default async function Page({ 
+  params, 
+  searchParams 
+}: { 
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const { id } = await params
+  const search = await searchParams
+}
+```
+
+**🚨 YOU ALWAYS FORGET THIS! ALL DYNAMIC ROUTES NEED AWAIT PARAMS!**
+- **NEVER** access `params.property` directly - always `await params` first
+- **ALL** dynamic routes (`[id]`, `[slug]`, etc.) must await params
+- **searchParams** also needs to be awaited: `const searchParams = await searchParams`
+- This is a breaking change in Next.js 15+ - old code will error!
+
 ### 🚨 CRITICAL: Documentation Requirements
 - ✅ **UPDATE README.md** - MANDATORY for any feature changes, new environment variables, or functionality updates
 - ✅ **UPDATE env.example** - MANDATORY when introducing new environment variables with proper documentation
 - ✅ **Cross-reference documentation** - Ensure README.md accurately reflects implemented features
-
-### DATABASE SCHEMA CHANGES
-- Database schema is defined in `./src/lib/db/schema.ts`
-- To apply schema changes, user must run: `npm run db:generate && npm run db:migrate`
-- **NEVER** manually edit migration files in `./drizzle/migrations/`
-- **Migration naming:** New migrations use timestamp format (yyyyMMddHHmmss_description.sql)
-- **Legacy migrations:** Existing numbered migrations (0000_, 0001_) remain for compatibility
 
 ## SQLite Timestamp Handling with Drizzle
 
@@ -75,6 +137,7 @@ This project includes pre-installed and configured:
 - Next.js 15.4 with App Router
 - TypeScript with strict configuration
 - Tailwind CSS with shadcn/ui (ALL 45+ components pre-installed)
+- **Skeleton Components** - Comprehensive loading states with pre-built patterns
 - Drizzle ORM with better-sqlite3
 - NextAuth.js for OAuth authentication (Google, GitHub, Meta/Facebook, Apple)
 - Custom session management for email/password authentication
@@ -122,6 +185,58 @@ All 45+ shadcn/ui components are pre-installed and ready to use:
 - **Utility**: Command, Resizable, Scroll Area, Carousel
 
 Import from `@/components/ui/[component-name]`
+
+## Skeleton Loading Components (REQUIRED for async operations)
+
+Comprehensive skeleton components MUST be used instead of traditional spinners:
+
+### Available Skeleton Components
+```tsx
+// Basic skeleton
+import { Skeleton } from '@/components/ui/skeleton'
+
+// Pre-built layout skeletons
+import {
+  LoadingSkeleton,      // Generic with variants
+  PageSkeleton,         // Full page layout
+  CardSkeleton,         // Card layouts
+  TableSkeleton,        // Data tables
+  FormSkeleton,         // Form layouts
+  DashboardSkeleton,    // Dashboard stats
+  ChatSkeleton          // Chat messages
+} from '@/components/ui/loading-skeleton'
+
+// Suspense wrappers with skeleton fallbacks
+import {
+  SuspenseSkeleton,     // Generic wrapper
+  SuspenseCard,         // Card wrapper
+  SuspenseTable,        // Table wrapper
+  SuspenseForm,         // Form wrapper
+  SuspenseDashboard,    // Dashboard wrapper
+  SuspenseChat          // Chat wrapper
+} from '@/components/ui/suspense-skeleton'
+```
+
+### Usage Requirements
+- **Server Actions**: MUST show skeleton during `useTransition` pending state
+- **REST API calls**: MUST show skeleton during loading state
+- **Page-level loading**: Use Suspense boundaries with skeleton fallbacks
+- **NO traditional spinners**: Skeletons provide better UX
+
+### Examples
+```tsx
+// Server Action with skeleton
+const [isPending, startTransition] = useTransition()
+if (isPending) return <LoadingSkeleton variant="form" />
+
+// API call with skeleton
+if (loading) return <LoadingSkeleton variant="table" rows={5} />
+
+// Suspense boundary
+<SuspenseTable rows={10}>
+  <AsyncDataTable />
+</SuspenseTable>
+```
 
 ## Development Tools
 
@@ -511,16 +626,19 @@ All existing email/SMS code has been migrated to use the centralized notificatio
 ## Development Guidelines
 
 1. **TypeScript First**: Run `npm run check` after EVERY change - no exceptions
-2. **TDD Workflow**: Write tests first, then implementation
-3. **Test with impersonation**: Use the middleware to test as different user roles
-4. Follow existing code patterns and conventions
-5. Use existing components from shadcn/ui
-6. Implement new features using Server Actions
-7. Ensure mobile responsiveness for all UI
-8. Maintain TypeScript strict compliance
-9. Test on both light and dark themes
-10. **Run tests before committing**: Ensure all tests pass
-11. **🚨 MANDATORY Documentation Updates**:
+2. **🚨 Database Migrations**: ALWAYS run `npm run db:generate && npm run db:migrate` after schema changes
+3. **🚨 Await Params**: ALWAYS await params in dynamic routes (`const { id } = await params`)
+4. **TDD Workflow**: Write tests first, then implementation
+5. **Skeleton Loading States**: MUST use skeleton components for ALL async operations (Server Actions, API calls)
+6. **Test with impersonation**: Use the middleware to test as different user roles
+7. Follow existing code patterns and conventions
+8. Use existing components from shadcn/ui
+9. Implement new features using Server Actions
+10. Ensure mobile responsiveness for all UI
+11. Maintain TypeScript strict compliance
+12. Test on both light and dark themes
+13. **Run tests before committing**: Ensure all tests pass
+14. **🚨 MANDATORY Documentation Updates**:
     - **README.md**: Update for ANY feature changes, new functionality, or configuration changes
     - **env.example**: Add ALL new environment variables with proper documentation and example values
     - **Cross-reference**: Verify documentation matches actual implementation
@@ -818,6 +936,10 @@ After making any changes:
 ```bash
 npm run check    # Fast TypeScript validation (< 2 seconds)
 # Fix any errors before proceeding
+
+# 🚨 IF YOU CHANGED SCHEMA - RUN MIGRATIONS (YOU ALWAYS FORGET!)
+npm run db:generate && npm run db:migrate
+
 npm run lint     # Optional: Check code style
 npm run build    # Full build when ready to test
 
@@ -827,6 +949,51 @@ npm run build    # Full build when ready to test
 # Test regular user access (should redirect from admin areas):
 # http://localhost:3000/database?token=your-secret-dev-token-here&user=regular-user-id
 ```
+
+## 🚨 COMMON MISTAKES TO AVOID (You Always Make These!)
+
+1. **Forgetting to await params in dynamic routes**
+   ```tsx
+   // ❌ WRONG - Will error in Next.js 15+
+   const id = params.id
+   
+   // ✅ CORRECT
+   const { id } = await params
+   ```
+
+2. **Forgetting to run migrations after schema changes**
+   ```bash
+   # ❌ WRONG - Just editing schema.ts without migrations
+   
+   # ✅ CORRECT - Always run after schema changes
+   npm run db:generate && npm run db:migrate
+   ```
+
+3. **Forgetting DashboardLayout for authenticated pages**
+   ```tsx
+   // ❌ WRONG - Page loses sidebar navigation
+   export default function MyPage() {
+     return <div>Content</div>;
+   }
+   
+   // ✅ CORRECT - Wrapped in DashboardLayout
+   export default function MyPage() {
+     return (
+       <DashboardLayout>
+         <div>Content</div>
+       </DashboardLayout>
+     );
+   }
+   ```
+
+4. **Using spinners instead of skeletons**
+   ```tsx
+   // ❌ WRONG - Traditional spinner
+   {loading && <Spinner />}
+   
+   // ✅ CORRECT - Skeleton component
+   {loading && <LoadingSkeleton variant="table" />}
+   ```
 
 ## Getting Help
 

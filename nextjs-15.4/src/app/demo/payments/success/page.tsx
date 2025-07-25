@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
-export default function PaymentSuccessPage({
+export default async function PaymentSuccessPage({
   searchParams,
 }: {
-  searchParams: { session_id?: string };
+  searchParams: Promise<{ session_id?: string }>;
 }) {
+  const { session_id } = await searchParams;
   return (
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-md mx-auto">
@@ -21,10 +22,10 @@ export default function PaymentSuccessPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {searchParams.session_id && (
+          {session_id && (
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground mb-1">Session ID:</p>
-              <code className="text-xs break-all">{searchParams.session_id}</code>
+              <code className="text-xs break-all">{session_id}</code>
             </div>
           )}
 

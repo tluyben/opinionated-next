@@ -3,13 +3,13 @@ import { redirect } from 'next/navigation';
 import { EmailVerificationForm } from '@/components/auth/email-verification-form';
 
 interface VerifyEmailPageProps {
-  searchParams: {
+  searchParams: Promise<{
     token?: string;
-  };
+  }>;
 }
 
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
-  const { token } = searchParams;
+  const { token } = await searchParams;
 
   // If no token provided, show error
   if (!token) {

@@ -29,6 +29,13 @@
       "when": 1753409716140,
       "tag": "20250725031516_productive_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1753450561781,
+      "tag": "20250725143601_mixed_vindicator",
+      "breakpoints": true
     }
   ]
 }
