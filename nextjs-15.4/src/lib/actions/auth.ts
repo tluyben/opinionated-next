@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { db, users, passwordResetTokens } from '@/lib/db';
+import { db, users, passwordResetTokens, emailVerificationTokens } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { generateId } from '@/lib/utils';
@@ -28,6 +28,11 @@ export async function loginAction(formData: FormData) {
 
     if (!isValid) {
       return { error: 'Invalid credentials' };
+    }
+
+    // Check if email is verified (only for email/password users, not OAuth)
+    if (user[0].passwordHash && !user[0].emailVerified) {
+      return { error: 'Please verify your email address before logging in. Check your email for the verification link.' };
     }
 
     await createSession(user[0].id);
@@ -70,23 +75,175 @@ export async function signupAction(formData: FormData) {
       passwordHash: hashedPassword,
       name,
       role: 'user',
+      emailVerified: false, // Start as unverified
       createdAt: new Date(),
       updatedAt: new Date(),
     });
 
-    await createSession(userId);
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const tokenId = generateId();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Store verification token
+    await db.insert(emailVerificationTokens).values({
+      id: tokenId,
+      userId,
+      token: verificationToken,
+      email,
+      expiresAt,
+      used: false,
+    });
+
+    // Send verification email
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const verifyUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Verify Your Email</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f5f5f5;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="background-color: #16a34a; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; font-size: 24px;">📧 Welcome! Please Verify Your Email</h1>
+            </div>
+            
+            <div style="padding: 20px;">
+              <p style="margin-top: 0;">Hello ${name},</p>
+              
+              <p>Thank you for signing up! To complete your account setup and access all features, please verify your email address.</p>
+              
+              <p>Click the button below to verify your email:</p>
+              
+              <div style="margin: 30px 0; text-align: center;">
+                <a href="${verifyUrl}" 
+                   style="background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                  Verify Email Address
+                </a>
+              </div>
+              
+              <p>Or copy and paste this link into your browser:</p>
+              <p style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; word-break: break-all; font-size: 14px;">
+                ${verifyUrl}
+              </p>
+              
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              
+              <p style="color: #666; font-size: 14px; margin-bottom: 0;">
+                This verification link will expire in 24 hours for security purposes.
+                <br>
+                If you didn't create this account, please ignore this email.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const textContent = `
+Welcome! Please Verify Your Email
+
+Hello ${name},
+
+Thank you for signing up! To complete your account setup and access all features, please verify your email address.
+
+To verify your email, visit this link:
+${verifyUrl}
+
+This verification link will expire in 24 hours for security purposes.
+
+If you didn't create this account, please ignore this email.
+    `;
+
+    // Use centralized notification service to send verification email
+    const { sendEmail } = await import('@/lib/notifications/service');
+    await sendEmail({
+      to: email,
+      subject: '📧 Please verify your email address',
+      content: textContent,
+      htmlContent: htmlContent,
+      category: 'auth',
+      priority: 'high',
+      userId: userId,
+      metadata: {
+        verificationTokenId: tokenId,
+        expiresAt: expiresAt.toISOString(),
+        isNewUser: true
+      }
+    });
+
+    // Don't create session yet - user must verify email first
+    return { success: true, message: 'Account created! Please check your email to verify your account.' };
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     await handleServerError(err, { action: 'signupAction', tags: ['auth'] });
     return { error: 'Something went wrong' };
   }
-  
-  redirect('/dashboard');
 }
 
 export async function logoutAction() {
   await deleteSession();
   redirect('/');
+}
+
+export async function verifyEmailAction(token: string) {
+  if (!token) {
+    return { error: 'Verification token is required' };
+  }
+
+  try {
+    // Find valid verification token
+    const verificationToken = await db
+      .select()
+      .from(emailVerificationTokens)
+      .where(
+        and(
+          eq(emailVerificationTokens.token, token),
+          eq(emailVerificationTokens.used, false)
+        )
+      )
+      .limit(1);
+
+    if (verificationToken.length === 0) {
+      return { error: 'Invalid or expired verification token' };
+    }
+
+    const tokenData = verificationToken[0];
+
+    // Check if token is expired
+    if (tokenData.expiresAt < new Date()) {
+      return { error: 'Verification token has expired' };
+    }
+
+    // Update user as verified
+    await db
+      .update(users)
+      .set({
+        emailVerified: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, tokenData.userId));
+
+    // Mark token as used
+    await db
+      .update(emailVerificationTokens)
+      .set({ used: true })
+      .where(eq(emailVerificationTokens.id, tokenData.id));
+
+    // Create session for the verified user
+    await createSession(tokenData.userId);
+
+    return { success: true };
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    await handleServerError(err, { action: 'verifyEmailAction', tags: ['auth', 'email-verification'] });
+    return { error: 'Something went wrong' };
+  }
 }
 
 export async function requestPasswordResetAction(formData: FormData) {
@@ -119,11 +276,86 @@ export async function requestPasswordResetAction(formData: FormData) {
       used: false,
     });
 
-    // TODO: Send email with reset link
-    // For now, we'll just log it to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`Password reset link: http://localhost:3000/reset-password?token=${resetToken}`);
-    }
+    // Send password reset email
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Password Reset Request</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f5f5f5;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="background-color: #2563eb; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; font-size: 24px;">🔐 Password Reset Request</h1>
+            </div>
+            
+            <div style="padding: 20px;">
+              <p style="margin-top: 0;">Hello ${user[0].name || 'User'},</p>
+              
+              <p>We received a request to reset your password. If you didn't make this request, you can safely ignore this email.</p>
+              
+              <p>To reset your password, click the button below:</p>
+              
+              <div style="margin: 30px 0; text-align: center;">
+                <a href="${resetUrl}" 
+                   style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                  Reset Your Password
+                </a>
+              </div>
+              
+              <p>Or copy and paste this link into your browser:</p>
+              <p style="background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; word-break: break-all; font-size: 14px;">
+                ${resetUrl}
+              </p>
+              
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              
+              <p style="color: #666; font-size: 14px; margin-bottom: 0;">
+                This password reset link will expire in 1 hour for security purposes.
+                <br>
+                If you didn't request this reset, please ignore this email or contact support if you have concerns.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const textContent = `
+Password Reset Request
+
+Hello ${user[0].name || 'User'},
+
+We received a request to reset your password. If you didn't make this request, you can safely ignore this email.
+
+To reset your password, visit this link:
+${resetUrl}
+
+This password reset link will expire in 1 hour for security purposes.
+
+If you didn't request this reset, please ignore this email or contact support if you have concerns.
+    `;
+
+    // Use centralized notification service to send password reset email
+    const { sendEmail } = await import('@/lib/notifications/service');
+    await sendEmail({
+      to: email,
+      subject: '🔐 Password Reset Request',
+      content: textContent,
+      htmlContent: htmlContent,
+      category: 'auth',
+      priority: 'high',
+      userId: user[0].id,
+      metadata: {
+        resetTokenId: tokenId,
+        expiresAt: expiresAt.toISOString()
+      }
+    });
 
     return { success: true };
   } catch (error) {

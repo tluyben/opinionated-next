@@ -11,6 +11,7 @@ export interface SessionUser {
   name: string | null;
   role: 'user' | 'admin';
   avatarUrl: string | null;
+  emailVerified: boolean;
 }
 
 export async function createSession(userId: string) {
@@ -52,6 +53,7 @@ export async function getSession(): Promise<SessionUser | null> {
             name: userData.name,
             role: userData.role as 'user' | 'admin',
             avatarUrl: userData.avatarUrl,
+            emailVerified: userData.emailVerified || false,
           };
         }
       } catch (error) {
@@ -90,6 +92,7 @@ export async function getSession(): Promise<SessionUser | null> {
     name: user.name,
     role: user.role as 'user' | 'admin',
     avatarUrl: user.avatarUrl,
+    emailVerified: user.emailVerified || false,
   };
 }
 
@@ -110,4 +113,27 @@ export async function requireAuth(): Promise<SessionUser> {
     throw new Error('Authentication required');
   }
   return user;
+}
+
+export async function requireVerifiedAuth(): Promise<SessionUser> {
+  const user = await getSession();
+  if (!user) {
+    throw new Error('Authentication required');
+  }
+  
+  // Skip email verification check for OAuth users (they don't have passwordHash)
+  // and for admin users (they're created with emailVerified: true)
+  const userRecord = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+  if (userRecord.length > 0) {
+    const userData = userRecord[0];
+    // Allow access if:
+    // 1. Email is verified, OR
+    // 2. User signed up via OAuth (no passwordHash), OR  
+    // 3. User is admin (they're created as verified)
+    if (user.emailVerified || !userData.passwordHash || user.role === 'admin') {
+      return user;
+    }
+  }
+  
+  throw new Error('Email verification required');
 }

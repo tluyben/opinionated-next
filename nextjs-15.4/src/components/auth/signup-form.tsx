@@ -10,18 +10,23 @@ import Link from 'next/link';
 
 export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (formData: FormData) => {
     setLoading(true);
     setError(null);
+    setSuccess(null);
     
     const result = await signupAction(formData);
     
     if (result?.error) {
       setError(result.error);
-      setLoading(false);
+    } else if (result?.success) {
+      setSuccess(result.message || 'Account created! Please check your email to verify your account.');
     }
+    
+    setLoading(false);
   };
 
   return (
@@ -38,6 +43,11 @@ export function SignupForm() {
                 {error}
               </div>
             )}
+            {success && (
+              <div className="p-3 text-sm text-green-600 bg-green-50 dark:bg-green-900/20 rounded-md">
+                {success}
+              </div>
+            )}
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium">
                 Full Name
@@ -48,7 +58,7 @@ export function SignupForm() {
                 type="text"
                 placeholder="Enter your full name"
                 required
-                disabled={loading}
+                disabled={loading || !!success}
               />
             </div>
             <div className="space-y-2">
@@ -61,7 +71,7 @@ export function SignupForm() {
                 type="email"
                 placeholder="Enter your email"
                 required
-                disabled={loading}
+                disabled={loading || !!success}
               />
             </div>
             <div className="space-y-2">
@@ -75,24 +85,39 @@ export function SignupForm() {
                 placeholder="Enter your password (min 8 characters)"
                 required
                 minLength={8}
-                disabled={loading}
+                disabled={loading || !!success}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating Account...' : 'Create Account'}
+            <Button type="submit" className="w-full" disabled={loading || !!success}>
+              {loading ? 'Creating Account...' : success ? 'Account Created!' : 'Create Account'}
             </Button>
+            
+            {success && (
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Already verified your email?
+                </p>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/login">Sign In</Link>
+                </Button>
+              </div>
+            )}
           </form>
           
-          <div className="mt-6">
-            <OAuthButtons callbackUrl="/dashboard" />
-          </div>
+          {!success && (
+            <>
+              <div className="mt-6">
+                <OAuthButtons callbackUrl="/dashboard" />
+              </div>
 
-          <div className="mt-4 text-center text-sm">
-            Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">
-              Sign in
-            </Link>
-          </div>
+              <div className="mt-4 text-center text-sm">
+                Already have an account?{' '}
+                <Link href="/login" className="text-primary hover:underline">
+                  Sign in
+                </Link>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

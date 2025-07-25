@@ -799,6 +799,51 @@ See deployment documentation for Docker and production setup.
 - **ALWAYS create .gitignore and .dockerignore** files using provided templates
 - **ALWAYS create README.md** for user documentation
 - **Database is ALWAYS named `content.db`** - never dev.db, prod.db, or other names
+
+## 🚨 CRITICAL: Documentation and Environment Requirements
+
+### README.md Maintenance
+**MANDATORY**: Any change to project functionality, features, or configuration MUST include updating the README.md:
+
+- **New Features** - Document usage, configuration, and examples
+- **New Environment Variables** - Add to environment section with descriptions
+- **New Commands/Scripts** - Update available scripts section
+- **API Changes** - Update usage examples and documentation
+- **Dependencies Added** - Update tech stack and setup instructions
+- **Authentication Changes** - Update auth flow documentation
+- **Database Changes** - Update schema documentation if relevant
+
+### Environment Variable Management
+**MANDATORY**: All new environment variables MUST be added to `env.example`:
+
+- **Document each variable** with clear comments explaining purpose
+- **Provide example values** (use placeholder/dummy values, never real secrets)
+- **Group related variables** together with section headers
+- **Mark optional vs required** variables clearly
+- **Include default values** when applicable
+
+#### Example format for env.example:
+```env
+# Database Configuration (Required)
+DATABASE_URL="file:./content.db"
+
+# SMTP Email (Optional - falls back to console logging)
+SMTP_HOST="smtp.example.com"
+SMTP_PORT="587"
+SMTP_USER="your-email@example.com"
+SMTP_PASS="your-app-password"
+SMTP_FROM="noreply@yourapp.com"
+
+# OAuth Providers (Optional - enable the ones you need)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+```
+
+### Enforcement
+- **AI Assistants MUST check** if changes require documentation updates
+- **No exceptions** - documentation updates are not optional
+- **Verify env.example** is updated when new environment variables are introduced
+- **Cross-reference** README.md with actual implemented features for accuracy
 - **Always generate and run migrations** when making schema changes
 - **Use SQLite timestamp format** with `strftime('%s', 'now')` for default values
 - **Create admin user** on initial setup and after database resets

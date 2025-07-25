@@ -17,6 +17,7 @@ import {
   Database,
   AlertTriangle,
   Cog,
+  Bell,
 } from 'lucide-react';
 import { useState } from 'react';
 import { SessionUser } from '@/lib/auth/session';
@@ -35,6 +36,7 @@ const navigation = [
 const adminNavigation = [
   { name: 'Database', href: '/database', icon: Database },
   { name: 'Issues', href: '/dashboard/admin/issues', icon: AlertTriangle },
+  { name: 'Notifications', href: '/dashboard/admin/notifications', icon: Bell },
   { name: 'Admin Settings', href: '/dashboard/admin/settings', icon: Cog },
 ];
 

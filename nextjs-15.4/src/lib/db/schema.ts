@@ -127,6 +127,17 @@ export const passwordResetTokens = sqliteTable('password_reset_tokens', {
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
+// Email verification tokens
+export const emailVerificationTokens = sqliteTable('email_verification_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  email: text('email').notNull(), // Email being verified
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  used: integer('used', { mode: 'boolean' }).default(false),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
 // Issues/Error tracking table
 export const issues = sqliteTable('issues', {
   id: text('id').primaryKey(),
@@ -166,6 +177,39 @@ export const adminSettings = sqliteTable('admin_settings', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
+// Notifications tracking table for emails and SMS
+export const notifications = sqliteTable('notifications', {
+  id: text('id').primaryKey(),
+  type: text('type', { enum: ['email', 'sms'] }).notNull(),
+  status: text('status', { 
+    enum: ['pending', 'sent', 'failed', 'delivered', 'bounced'] 
+  }).notNull().default('pending'),
+  recipient: text('recipient').notNull(), // email address or phone number
+  subject: text('subject'), // email subject (null for SMS)
+  content: text('content').notNull(), // email body or SMS message
+  htmlContent: text('html_content'), // HTML email content (null for SMS)
+  templateId: text('template_id'), // template identifier if using templates
+  templateData: text('template_data'), // JSON template variables
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }), // recipient user if exists
+  sentBy: text('sent_by').references(() => users.id, { onDelete: 'set null' }), // admin/system who triggered
+  category: text('category', {
+    enum: ['auth', 'error-notification', 'marketing', 'system', 'security', 'reminder']
+  }).notNull(),
+  priority: text('priority', { 
+    enum: ['low', 'normal', 'high', 'urgent'] 
+  }).notNull().default('normal'),
+  scheduledFor: integer('scheduled_for', { mode: 'timestamp' }), // for delayed sending
+  sentAt: integer('sent_at', { mode: 'timestamp' }),
+  deliveredAt: integer('delivered_at', { mode: 'timestamp' }),
+  failureReason: text('failure_reason'), // error message if failed
+  retryCount: integer('retry_count').notNull().default(0),
+  maxRetries: integer('max_retries').notNull().default(3),
+  metadata: text('metadata'), // additional context as JSON
+  providerResponse: text('provider_response'), // response from email/SMS provider
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
@@ -186,7 +230,11 @@ export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type NewVerificationToken = typeof verificationTokens.$inferInsert;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+export type NewEmailVerificationToken = typeof emailVerificationTokens.$inferInsert;
 export type Issue = typeof issues.$inferSelect;
 export type NewIssue = typeof issues.$inferInsert;
 export type AdminSettings = typeof adminSettings.$inferSelect;
 export type NewAdminSettings = typeof adminSettings.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;

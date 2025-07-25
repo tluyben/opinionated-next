@@ -1,3 +1,4 @@
+import { sendEmail } from '@/lib/notifications/service';
 import type { ErrorLevel } from './logger';
 
 interface ErrorNotificationData {
@@ -12,26 +13,7 @@ export async function sendErrorNotification(
   email: string,
   data: ErrorNotificationData
 ): Promise<void> {
-  // Check if SMTP is configured
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
-    console.log(`[DEV] Error notification email would be sent to ${email}:`, data);
-    return;
-  }
-
   try {
-    // Import nodemailer only if SMTP is configured
-    const nodemailer = require('nodemailer');
-
-    const transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_PORT === '465',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
     const levelEmoji = {
       error: '🚨',
       warning: '⚠️',
@@ -111,12 +93,19 @@ This notification was sent because you're an admin user with error notifications
 You can manage notification settings in your admin dashboard.
     `;
 
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    // Use centralized notification service
+    await sendEmail({
       to: email,
       subject: `${levelEmoji[data.level]} New ${data.level.charAt(0).toUpperCase() + data.level.slice(1)}: ${data.title}`,
-      text: textContent,
-      html: htmlContent,
+      content: textContent,
+      htmlContent: htmlContent,
+      category: 'error-notification',
+      priority: data.level === 'error' ? 'urgent' : data.level === 'warning' ? 'high' : 'normal',
+      metadata: {
+        issueId: data.issueId,
+        level: data.level,
+        adminName: data.adminName
+      }
     });
 
     console.log(`Error notification sent to ${email} for issue ${data.issueId}`);

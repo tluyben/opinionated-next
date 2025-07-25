@@ -20,6 +20,7 @@ A production-ready Next.js starter with authentication, database, testing, and m
 - 🤖 **LLM Integration** - Multi-provider streaming chat (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
 - 💳 **Payments** - Stripe integration with subscriptions and one-time payments
 - 🚨 **Error Tracking** - Comprehensive Sentry-like error monitoring and admin dashboard
+- 📤 **Notifications** - Centralized email/SMS tracking and management system
 
 ## Quick Start
 
@@ -345,6 +346,93 @@ SMTP_USER="your-smtp-user"
 SMTP_PASS="your-smtp-password"
 SMTP_FROM="errors@yourdomain.com"
 ```
+
+## Notification System
+
+This starter includes a comprehensive notification tracking system that centralizes all email and SMS sending through the application.
+
+### Features
+
+- **Centralized API** - All email/SMS goes through a single tracking service
+- **Database Tracking** - Every notification stored with delivery status  
+- **Admin Dashboard** - Monitor and manage all notifications at `/dashboard/admin/notifications`
+- **Retry Logic** - Failed notifications automatically retried up to 3 times
+- **Provider Fallback** - Console logging when SMTP/Twilio not configured (development)
+- **Rich Filtering** - Filter by type, status, category, and search content
+- **Resend Functionality** - Admin users can resend failed notifications
+
+### Usage
+
+Import the notification functions and use them throughout your application:
+
+```typescript
+import { sendEmail, sendSMS } from '@/lib/notifications/service';
+
+// Send email with tracking
+await sendEmail({
+  to: 'user@example.com',
+  subject: 'Welcome to our app!',
+  content: 'Thank you for signing up.',
+  htmlContent: '<p>Thank you for signing up.</p>',
+  category: 'auth', // Required for categorization
+  priority: 'normal' // low, normal, high, urgent
+});
+
+// Send SMS with tracking
+await sendSMS({
+  to: '+1234567890',
+  content: 'Your verification code is: 123456',
+  category: 'security',
+  priority: 'high'
+});
+```
+
+### Categories
+
+All notifications must specify a category for organization:
+
+- **auth** - Authentication emails (signup, password reset, verification)
+- **error-notification** - Error alerts sent to admins
+- **system** - System notifications and maintenance alerts
+- **security** - Security alerts and important notifications
+- **marketing** - Promotional and marketing emails
+- **reminder** - Reminders and follow-up notifications
+
+### Admin Dashboard
+
+Admin users have access to comprehensive notification management:
+
+- **Statistics Overview** - Counts by type, status, and category
+- **Notification List** - Paginated list with advanced filtering
+- **Detailed View** - Complete notification details including provider responses
+- **Resend Failed** - Retry notifications that failed to deliver
+- **Search & Filter** - Find notifications by content, recipient, or metadata
+
+### Configuration
+
+The notification system uses your existing SMTP and Twilio configuration. If not configured, notifications will be logged to console in development mode:
+
+```env
+# SMTP Configuration (optional)
+SMTP_HOST="your-smtp-host"
+SMTP_PORT="587"
+SMTP_USER="your-smtp-user"
+SMTP_PASS="your-smtp-password"
+SMTP_FROM="notifications@yourdomain.com"
+
+# Twilio Configuration (optional)
+TWILIO_ACCOUNT_SID="your-account-sid"
+TWILIO_AUTH_TOKEN="your-auth-token"  
+TWILIO_PHONE_NUMBER="your-twilio-number"
+```
+
+### Built-in Integration
+
+The notification system is already integrated with:
+
+- **Password Reset** - Secure password reset emails automatically tracked
+- **Error Notifications** - Admin error alerts sent through notification system
+- **Future Features** - All new email/SMS features will use this system
 
 ## Deployment
 

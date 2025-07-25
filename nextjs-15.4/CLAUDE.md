@@ -33,7 +33,11 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 - ✅ **Faster than build** - use for quick validation
 - ✅ **Run tests after implementing features** - use `npm run test` to verify
 - ✅ **Write tests FIRST for new features** - follow TDD approach
-- ✅ **UPDATE README.md** after major feature additions or changes
+
+### 🚨 CRITICAL: Documentation Requirements
+- ✅ **UPDATE README.md** - MANDATORY for any feature changes, new environment variables, or functionality updates
+- ✅ **UPDATE env.example** - MANDATORY when introducing new environment variables with proper documentation
+- ✅ **Cross-reference documentation** - Ensure README.md accurately reflects implemented features
 
 ### DATABASE SCHEMA CHANGES
 - Database schema is defined in `./src/lib/db/schema.ts`
@@ -354,6 +358,156 @@ If SMTP is not configured, error notifications will be logged to console in deve
 - **Production Ready** - Optimized for production with proper error grouping and notifications
 - **Admin Access Only** - All error tracking features require admin role for security
 
+## Notification System
+
+The project includes a comprehensive notification tracking system that centralizes all email and SMS sending through the application.
+
+### The Opinionated Notification API
+
+**CRITICAL**: All email and SMS sending MUST use the centralized notification service. Never use nodemailer or Twilio directly.
+
+#### Core Functions
+
+```typescript
+import { sendEmail, sendSMS } from '@/lib/notifications/service';
+
+// Send email with tracking
+await sendEmail({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  content: 'Plain text content',
+  htmlContent: '<p>HTML content</p>', // optional
+  category: 'auth', // required for categorization
+  priority: 'normal', // low, normal, high, urgent
+  userId: 'user-id', // optional - recipient user
+  sentBy: 'admin-id', // optional - who triggered send
+  metadata: { key: 'value' } // optional additional context
+});
+
+// Send SMS with tracking  
+await sendSMS({
+  to: '+1234567890',
+  content: 'SMS message text',
+  category: 'security',
+  priority: 'high',
+  userId: 'user-id',
+  sentBy: 'admin-id',
+  metadata: { key: 'value' }
+});
+```
+
+#### Categories
+All notifications must specify a category:
+- `auth` - Authentication emails (signup, password reset, verification)
+- `error-notification` - Error alerts sent to admins
+- `system` - System notifications and maintenance alerts
+- `security` - Security alerts and notifications
+- `marketing` - Promotional and marketing emails
+- `reminder` - Reminders and follow-up notifications
+
+#### Features
+
+- **Automatic Tracking** - All notifications stored in database with delivery status
+- **Retry Logic** - Failed notifications automatically retried up to 3 times
+- **Admin Dashboard** - View, filter, and resend notifications via `/dashboard/admin/notifications`
+- **Fallback Support** - Console logging when SMTP/Twilio not configured (development)
+- **Provider Response Tracking** - Store provider responses for debugging
+- **Resend Functionality** - Admin users can resend failed notifications
+- **Search & Filtering** - Filter by type, status, category, and search content
+
+#### Database Tables
+
+The notification system uses the `notifications` table with comprehensive tracking:
+
+- **Delivery Status** - pending, sent, failed, delivered, bounced
+- **Provider Responses** - Store email/SMS provider responses
+- **Retry Tracking** - Count and limit retry attempts
+- **Metadata Storage** - Additional context as JSON
+- **User Context** - Link notifications to specific users
+
+#### Usage Examples
+
+**Password Reset Email:**
+```typescript
+await sendEmail({
+  to: user.email,
+  subject: '🔐 Password Reset Request',
+  content: textContent,
+  htmlContent: htmlContent,
+  category: 'auth',
+  priority: 'high',
+  userId: user.id,
+  metadata: { resetTokenId: tokenId }
+});
+```
+
+**Error Notification:**
+```typescript
+await sendEmail({
+  to: admin.email,
+  subject: '🚨 New Error: Database Connection Failed',
+  content: errorDetails,
+  htmlContent: formattedErrorHtml,
+  category: 'error-notification',
+  priority: 'urgent',
+  metadata: { issueId: 'issue-123', level: 'error' }
+});
+```
+
+**Security Alert SMS:**
+```typescript
+await sendSMS({
+  to: user.phoneNumber,
+  content: 'Security alert: New login detected from unknown device.',
+  category: 'security',
+  priority: 'urgent',
+  userId: user.id
+});
+```
+
+#### Admin Dashboard Features
+
+Admin users can access comprehensive notification management:
+
+- **Statistics Dashboard** - Overview of notification counts by type, status, and category
+- **Notification List** - Paginated list with filtering and search
+- **Detailed View** - Complete notification details including provider responses
+- **Resend Functionality** - Retry failed notifications
+- **Delivery Tracking** - Monitor notification delivery status
+
+#### Environment Configuration
+
+The notification service uses existing SMTP and Twilio configuration:
+
+```env
+# SMTP (falls back to console logging if not configured)
+SMTP_HOST=""
+SMTP_PORT=""
+SMTP_USER=""
+SMTP_PASS=""
+SMTP_FROM=""
+
+# Twilio (falls back to console logging if not configured)
+TWILIO_ACCOUNT_SID=""
+TWILIO_AUTH_TOKEN=""
+TWILIO_PHONE_NUMBER=""
+```
+
+#### Development Mode
+
+In development mode (when SMTP/Twilio not configured):
+- **Email notifications** logged to console with full content
+- **SMS notifications** logged to console with recipient and content
+- **Database tracking** still occurs for testing admin dashboard
+- **Provider responses** simulated for testing
+
+### Migration Notes
+
+All existing email/SMS code has been migrated to use the centralized notification service:
+- **Error tracking emails** now use `sendEmail()` with `error-notification` category
+- **Password reset emails** now use `sendEmail()` with `auth` category
+- **All notifications tracked** in admin dashboard for monitoring
+
 ## Development Guidelines
 
 1. **TypeScript First**: Run `npm run check` after EVERY change - no exceptions
@@ -366,7 +520,10 @@ If SMTP is not configured, error notifications will be logged to console in deve
 8. Maintain TypeScript strict compliance
 9. Test on both light and dark themes
 10. **Run tests before committing**: Ensure all tests pass
-11. **Update README.md**: Keep user documentation current with changes
+11. **🚨 MANDATORY Documentation Updates**:
+    - **README.md**: Update for ANY feature changes, new functionality, or configuration changes
+    - **env.example**: Add ALL new environment variables with proper documentation and example values
+    - **Cross-reference**: Verify documentation matches actual implementation
 
 ### README.md Maintenance
 
