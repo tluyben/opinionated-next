@@ -59,7 +59,7 @@ This starter is **OPINIONATED** and follows strict conventions:
 2. **Mobile-First**: Everything must be responsive and mobile-optimized
 3. **TypeScript Strict**: Full type safety throughout
 4. **Database**: SQLite with Drizzle ORM using Unix timestamps
-5. **Authentication**: Session-based with role support (user/admin)
+5. **Authentication**: Session-based with role support (user/admin) + OAuth providers
 6. **Styling**: Tailwind CSS with shadcn/ui components
 7. **Theme**: Dark mode as default with light mode toggle
 8. **Test-Driven Development**: Write tests first, then implementation
@@ -72,7 +72,8 @@ This project includes pre-installed and configured:
 - TypeScript with strict configuration
 - Tailwind CSS with shadcn/ui (ALL 45+ components pre-installed)
 - Drizzle ORM with better-sqlite3
-- NextAuth.js for authentication
+- NextAuth.js for OAuth authentication (Google, GitHub, Meta/Facebook, Apple)
+- Custom session management for email/password authentication
 - React Email for email templates
 - Multer for file uploads
 - Twilio for SMS
@@ -81,6 +82,7 @@ This project includes pre-installed and configured:
 - Testing Library for component testing
 - Playwright for E2E testing
 - LLM Integration (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
+- Stripe Payments (subscriptions, one-time payments, webhooks)
 - All necessary type definitions
 
 ## File Structure
@@ -92,6 +94,7 @@ This project includes pre-installed and configured:
 - `./src/lib/db/schema.ts` - Database schema definitions
 - `./src/lib/storage/` - File storage utilities (S3/database fallback)
 - `./src/lib/llm/` - LLM client and providers
+- `./src/lib/payments/` - Payment client and configuration
 - `./src/types/` - TypeScript type definitions
 - `./src/**/*.test.ts(x)` - Test files co-located with source files
 - `./tests/e2e/` - Playwright E2E tests
@@ -261,6 +264,116 @@ The README.md file is the primary documentation for users. Update it when:
 - Changing deployment procedures
 - Adding new dependencies or integrations
 
+## Authentication System
+
+This project includes a comprehensive authentication system with both traditional email/password and OAuth support.
+
+### Authentication Features
+
+- **Email/Password Authentication** - Traditional signup/login with secure password hashing
+- **OAuth Providers** - Google, GitHub, Meta/Facebook, Apple integration via NextAuth.js
+- **Password Reset** - Secure password reset flow with email tokens
+- **Session Management** - Custom session-based authentication with role support
+- **User Roles** - Built-in support for 'user' and 'admin' roles
+- **Development Impersonation** - Test as any user in development mode
+
+### OAuth Configuration
+
+OAuth providers are configured via NextAuth.js at `/api/auth/[...nextauth]`. The following providers are supported:
+
+#### Google OAuth
+```env
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+```
+
+#### GitHub OAuth
+```env
+GITHUB_CLIENT_ID="your-github-client-id"
+GITHUB_CLIENT_SECRET="your-github-client-secret"
+```
+
+#### Meta/Facebook OAuth
+```env
+META_CLIENT_ID="your-meta-client-id"
+META_CLIENT_SECRET="your-meta-client-secret"
+```
+
+#### Apple OAuth
+```env
+APPLE_CLIENT_ID="your-apple-client-id"
+APPLE_CLIENT_SECRET="your-apple-client-secret"
+```
+
+### Authentication Flow
+
+1. **OAuth Sign-in** - Redirects to provider, creates/links account, establishes session
+2. **Email/Password** - Validates credentials, creates session
+3. **Password Reset** - Generates secure token, sends reset link (console in development)
+4. **Session Management** - Custom sessions stored in database with expiration
+
+### Database Tables
+
+OAuth support requires additional tables managed by NextAuth.js:
+
+- **accounts** - OAuth account connections
+- **verification_tokens** - Email verification tokens
+- **password_reset_tokens** - Password reset tokens (custom)
+
+### Components
+
+- **OAuthButtons** (`@/components/auth/oauth-buttons`) - Pre-built OAuth provider buttons
+- **LoginForm** (`@/components/auth/login-form`) - Email/password + OAuth login
+- **SignupForm** (`@/components/auth/signup-form`) - Email/password + OAuth signup
+- **ForgotPasswordForm** (`@/components/auth/forgot-password-form`) - Password reset request
+- **ResetPasswordForm** (`@/components/auth/reset-password-form`) - New password form
+
+### Server Actions
+
+Authentication actions are available in `@/lib/actions/auth`:
+
+- **loginAction** - Email/password login
+- **signupAction** - User registration
+- **logoutAction** - Sign out user
+- **requestPasswordResetAction** - Send password reset link
+- **resetPasswordAction** - Update password with reset token
+
+### Usage Examples
+
+#### OAuth Buttons
+```tsx
+import { OAuthButtons } from '@/components/auth/oauth-buttons';
+
+<OAuthButtons callbackUrl="/dashboard" />
+```
+
+#### Password Reset Flow
+```tsx
+// Request reset
+import { requestPasswordResetAction } from '@/lib/actions/auth';
+
+// Reset password
+import { resetPasswordAction } from '@/lib/actions/auth';
+```
+
+#### Session Management
+```tsx
+import { getSession, requireAuth } from '@/lib/auth/session';
+
+// Get current user (returns null if not authenticated)
+const user = await getSession();
+
+// Require authentication (throws if not authenticated)
+const user = await requireAuth();
+```
+
+### Development Notes
+
+- **Password reset links** are logged to console in development mode
+- **OAuth redirects** should be configured in each provider's dashboard
+- **Session cookies** are HTTP-only and secure in production
+- **Development impersonation** allows testing as any user
+
 ## LLM Integration
 
 The project includes built-in LLM streaming chat support for multiple providers:
@@ -320,6 +433,72 @@ export default async function ChatPage() {
 ### Demo
 Visit `/demo/llm` to see the LLM integration in action with a full-featured chat interface.
 
+## Stripe Payments Integration
+
+The project includes built-in Stripe payment support for subscriptions and one-time payments:
+
+### Features
+- **Checkout Sessions** - Redirect to Stripe-hosted checkout
+- **Payment Intents** - Direct payment processing
+- **Subscriptions** - Recurring billing with management
+- **Webhooks** - Automatic event processing
+- **Database Tracking** - Local storage of payment history
+
+### Usage
+
+#### Simple Checkout Button
+```tsx
+import { CheckoutButton } from '@/components/payments/checkout-button';
+
+<CheckoutButton priceId="price_xxx" mode="subscription">
+  Subscribe Now
+</CheckoutButton>
+```
+
+#### Server Actions
+```typescript
+import {
+  createCheckoutSession,
+  createPaymentIntent,
+  getActiveSubscription,
+  cancelSubscription,
+  getPaymentHistory,
+} from '@/lib/actions/payments';
+
+// Create checkout session
+const session = await createCheckoutSession('price_xxx');
+window.location.href = session.url;
+```
+
+#### Pricing Cards
+```tsx
+import { PricingCard } from '@/components/payments/pricing-card';
+
+<PricingCard
+  price={priceConfig}
+  productName="Pro Plan"
+  productDescription="Best for teams"
+  onSelect={handleSelect}
+/>
+```
+
+### Demo
+Visit `/demo/payments` to see the payment integration with pricing cards and checkout flows.
+
+### Webhook Configuration
+Set up webhook endpoint in Stripe Dashboard:
+```
+https://yourdomain.com/api/webhooks/stripe
+```
+
+Events handled:
+- `payment_intent.succeeded`
+- `payment_intent.payment_failed`
+- `checkout.session.completed`
+- `customer.subscription.*`
+- `invoice.payment_succeeded`
+- `invoice.payment_failed`
+
 ## Environment Variables Required
 
 For user impersonation to work, add to your `.env` file:
@@ -348,6 +527,18 @@ GROQ_BASE_URL="" # Optional custom endpoint
 # Cerebras
 CEREBRAS_API_KEY="csk-..."
 CEREBRAS_BASE_URL="" # Optional custom endpoint
+```
+
+For Stripe payments, add your API keys:
+```env
+# Stripe (required for payments)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..." # Get from Stripe Dashboard after creating webhook
+
+# Optional Stripe settings
+STRIPE_CURRENCY="usd"
+STRIPE_PAYMENT_METHODS="card" # Comma-separated: card,bank,paypal,etc
 ```
 
 ## Quick Validation Workflow

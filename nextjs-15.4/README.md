@@ -6,7 +6,7 @@ A production-ready Next.js starter with authentication, database, testing, and m
 
 - 🚀 **Next.js 15.4** with App Router and TypeScript
 - 🎨 **UI Components** - All 45+ shadcn/ui components pre-installed
-- 🔐 **Authentication** - Email/password + OAuth (Google, GitHub, Meta, Apple)
+- 🔐 **Authentication** - Email/password + OAuth (Google, GitHub, Meta, Apple) + Password Reset
 - 💾 **Database** - SQLite with Drizzle ORM
 - 📧 **Email** - SMTP integration with React Email templates
 - 📱 **SMS** - Twilio integration
@@ -18,6 +18,7 @@ A production-ready Next.js starter with authentication, database, testing, and m
 - 🔧 **Developer Tools** - User impersonation for testing
 - 🐳 **Docker Ready** - Production Docker setup included
 - 🤖 **LLM Integration** - Multi-provider streaming chat (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
+- 💳 **Payments** - Stripe integration with subscriptions and one-time payments
 
 ## Quick Start
 
@@ -69,6 +70,54 @@ npm run db:studio    # Open Drizzle Studio
 npm run create-admin # Create admin user
 npm run reset-admin  # Reset admin password
 ```
+
+## Authentication
+
+This starter includes a comprehensive authentication system with multiple sign-in options:
+
+### Available Authentication Methods
+
+- **Email/Password** - Traditional signup and login with secure password hashing
+- **Google OAuth** - Sign in with Google account
+- **GitHub OAuth** - Sign in with GitHub account  
+- **Meta/Facebook OAuth** - Sign in with Facebook account
+- **Apple OAuth** - Sign in with Apple ID
+- **Password Reset** - Secure password reset flow with email tokens
+
+### Authentication Pages
+
+- `/login` - Sign in with email/password or OAuth providers
+- `/signup` - Create account with email/password or OAuth providers
+- `/forgot-password` - Request password reset link
+- `/reset-password` - Set new password with reset token
+
+### OAuth Setup
+
+To enable OAuth providers, configure the following environment variables and set up OAuth apps in each provider's developer console:
+
+```env
+# Google OAuth (https://console.developers.google.com/)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# GitHub OAuth (https://github.com/settings/developers)
+GITHUB_CLIENT_ID="your-github-client-id"
+GITHUB_CLIENT_SECRET="your-github-client-secret"
+
+# Meta/Facebook OAuth (https://developers.facebook.com/)
+META_CLIENT_ID="your-meta-client-id"
+META_CLIENT_SECRET="your-meta-client-secret"
+
+# Apple OAuth (https://developer.apple.com/)
+APPLE_CLIENT_ID="your-apple-client-id"
+APPLE_CLIENT_SECRET="your-apple-client-secret"
+```
+
+### Development Features
+
+- **User Impersonation** - Test as any user with `?token=DEV_TOKEN&user=userId`
+- **Console Password Reset** - Reset links logged to console in development
+- **Auto Admin Creation** - Admin user created automatically on first startup
 
 ## Environment Variables
 
@@ -123,6 +172,11 @@ ANTHROPIC_API_KEY=""
 OPENROUTER_API_KEY=""
 GROQ_API_KEY=""
 CEREBRAS_API_KEY=""
+
+# Stripe Payments (optional - add to enable payments)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=""
+STRIPE_SECRET_KEY=""
+STRIPE_WEBHOOK_SECRET=""
 ```
 
 ## Testing
@@ -206,6 +260,36 @@ for await (const chunk of LLMClient.streamChat(
 #### Demo
 Visit `/demo/llm` to test the LLM integration with a full chat interface.
 
+### Payments Integration
+
+The starter includes Stripe payment processing:
+
+#### Features
+- Subscription management
+- One-time payments
+- Webhook handling
+- Invoice tracking
+- Customer portal
+
+#### Usage
+
+```typescript
+import { CheckoutButton } from '@/components/payments/checkout-button';
+import { createCheckoutSession } from '@/lib/actions/payments';
+
+// Simple checkout button
+<CheckoutButton priceId="price_xxx" mode="subscription">
+  Subscribe
+</CheckoutButton>
+
+// Programmatic checkout
+const session = await createCheckoutSession('price_xxx');
+window.location.href = session.url;
+```
+
+#### Demo
+Visit `/demo/payments` to see pricing cards and checkout flows.
+
 ## Project Structure
 
 ```
@@ -222,6 +306,7 @@ src/
 │   ├── db/          # Database schema and connections
 │   ├── email/       # Email templates and logic
 │   ├── llm/         # LLM client and providers
+│   ├── payments/    # Payment client and config
 │   └── storage/     # File storage utilities
 ├── middleware.ts    # Middleware (dev impersonation)
 └── types/          # TypeScript type definitions

@@ -20,6 +20,7 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 - **Testing Library** for component testing
 - **Playwright** for E2E testing
 - **LLM Integration** - Multi-provider streaming chat (OpenAI, Anthropic, OpenRouter, Groq, Cerebras)
+- **Payments** - Stripe integration with subscriptions and one-time payments
 
 ## Architecture Principles
 
@@ -58,12 +59,16 @@ nextjs-15.4/
 │   │   │   ├── profile/
 │   │   │   ├── settings/
 │   │   │   └── demo/
+│   │   │       ├── llm/
+│   │   │       └── payments/
 │   │   ├── api/ (ONLY when specifically requested)
 │   │   │   ├── auth/
 │   │   │   ├── upload/
 │   │   │   ├── email/
 │   │   │   ├── sms/
-│   │   │   └── llm/ (LLM streaming endpoints)
+│   │   │   ├── llm/ (LLM streaming endpoints)
+│   │   │   └── webhooks/
+│   │   │       └── stripe/ (Stripe webhook handler)
 │   │   ├── globals.css
 │   │   ├── layout.tsx
 │   │   └── page.tsx (landing)
@@ -74,6 +79,7 @@ nextjs-15.4/
 │   │   ├── landing/
 │   │   ├── llm/ (LLM chat components)
 │   │   ├── mobile/ (mobile-specific components)
+│   │   ├── payments/ (Payment components)
 │   │   └── theme/
 │   ├── lib/
 │   │   ├── db/
@@ -84,6 +90,7 @@ nextjs-15.4/
 │   │   ├── sms/
 │   │   ├── queue/
 │   │   ├── llm/ (LLM client and providers)
+│   │   ├── payments/ (Payment client and config)
 │   │   ├── actions/ (server actions)
 │   │   └── utils/
 │   ├── middleware.ts (dev user impersonation)
@@ -135,6 +142,7 @@ CREATE TABLE users (
   email_verified BOOLEAN DEFAULT FALSE,
   oauth_provider TEXT,
   oauth_id TEXT,
+  stripe_customer_id TEXT,
   created_at INTEGER NOT NULL, -- Unix timestamp
   updated_at INTEGER NOT NULL  -- Unix timestamp
 );
@@ -175,6 +183,65 @@ CREATE TABLE files (
   file_data BLOB NOT NULL,
   created_at INTEGER NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+### Payments Table
+```sql
+CREATE TABLE payments (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  stripe_payment_intent_id TEXT UNIQUE,
+  amount INTEGER NOT NULL, -- in cents
+  currency TEXT DEFAULT 'usd',
+  status TEXT CHECK(status IN ('pending', 'processing', 'succeeded', 'failed', 'canceled')),
+  description TEXT,
+  metadata TEXT, -- JSON
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+### Subscriptions Table
+```sql
+CREATE TABLE subscriptions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  stripe_subscription_id TEXT UNIQUE,
+  stripe_price_id TEXT NOT NULL,
+  status TEXT CHECK(status IN ('active', 'canceled', 'past_due', 'trialing', 'incomplete', 'incomplete_expired', 'unpaid')),
+  current_period_start INTEGER NOT NULL,
+  current_period_end INTEGER NOT NULL,
+  cancel_at_period_end BOOLEAN DEFAULT FALSE,
+  canceled_at INTEGER,
+  trial_start INTEGER,
+  trial_end INTEGER,
+  metadata TEXT, -- JSON
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+### Invoices Table
+```sql
+CREATE TABLE invoices (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  subscription_id TEXT,
+  stripe_invoice_id TEXT UNIQUE,
+  invoice_number TEXT,
+  amount_due INTEGER NOT NULL, -- in cents
+  amount_paid INTEGER NOT NULL, -- in cents
+  currency TEXT DEFAULT 'usd',
+  status TEXT CHECK(status IN ('draft', 'open', 'paid', 'void', 'uncollectible')),
+  paid_at INTEGER,
+  due_date INTEGER,
+  invoice_pdf TEXT, -- URL
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE SET NULL
 );
 ```
 
@@ -270,6 +337,16 @@ CREATE TABLE files (
 - **Ready-to-Use Components**: Pre-built chat UI with provider selection
 - **Demo Page**: `/demo/llm` showcases all LLM features
 - **Type-Safe**: Full TypeScript support for all LLM operations
+
+### Payment Processing
+- **Stripe Integration**: Full support for payments and subscriptions
+- **Flexible Pricing**: Support for one-time and recurring payments
+- **Subscription Management**: Create, update, and cancel subscriptions
+- **Webhook Handling**: Automatic processing of Stripe events
+- **Payment Components**: Pre-built checkout buttons and pricing cards
+- **Customer Portal**: Manage payment methods and invoices
+- **Demo Page**: `/demo/payments` showcases payment flows
+- **Database Tracking**: All payments and subscriptions tracked locally
 
 ## Custom Scripts
 
@@ -385,6 +462,13 @@ GROQ_API_KEY=""
 GROQ_BASE_URL="" # Optional, defaults to https://api.groq.com/openai/v1
 CEREBRAS_API_KEY=""
 CEREBRAS_BASE_URL="" # Optional, defaults to https://api.cerebras.ai/v1
+
+# Stripe Payments (optional - configure to enable payments)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=""
+STRIPE_SECRET_KEY=""
+STRIPE_WEBHOOK_SECRET="" # Required for webhook verification
+STRIPE_CURRENCY="usd" # Optional, defaults to usd
+STRIPE_PAYMENT_METHODS="card" # Optional, comma-separated list
 ```
 
 ## Setup Instructions
@@ -691,6 +775,13 @@ See deployment documentation for Docker and production setup.
   - **Pre-built chat component** available at `@/components/llm/streaming-chat`
   - **Demo available at `/demo/llm`** to test all configured providers
   - **Configure only the providers you need** - others will be automatically disabled
+- **Stripe Payments usage:**
+  - **Import from `@/lib/payments`** for types and configuration
+  - **Use server actions from `@/lib/actions/payments`** for payment operations
+  - **Pre-built components** in `@/components/payments/`
+  - **Demo available at `/demo/payments`** to test payment flows
+  - **Webhook endpoint** at `/api/webhooks/stripe` for event processing
+  - **Configure Stripe keys** in environment variables to enable
 
 ## Deployment Checklist
 

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { signupAction } from '@/lib/actions/auth';
+import { OAuthButtons } from './oauth-buttons';
 import Link from 'next/link';
 
 export function SignupForm() {
@@ -81,6 +82,11 @@ export function SignupForm() {
               {loading ? 'Creating Account...' : 'Create Account'}
             </Button>
           </form>
+          
+          <div className="mt-6">
+            <OAuthButtons callbackUrl="/dashboard" />
+          </div>
+
           <div className="mt-4 text-center text-sm">
             Already have an account?{' '}
             <Link href="/login" className="text-primary hover:underline">
