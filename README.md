@@ -14,6 +14,74 @@ Create a new project from any available template using the interactive script:
 ./scripts/create-project.sh
 ```
 
+## 🔄 Updating Existing Projects
+
+Update an existing project to a newer template version using the update script:
+
+```bash
+# Safe update (preserves all src/ and drizzle/ files)
+./scripts/update-next 15.5 /path/to/existing/project
+
+# Dangerous update (overwrites unchanged src/ and drizzle/ files)
+./scripts/update-next 15.5 /path/to/existing/project --force-overwrite
+```
+
+### Safe Update Mode (Default)
+
+The script will:
+- ✅ Update all configuration files (package.json, tsconfig.json, etc.)
+- ✅ Update dependencies and run fresh npm install
+- ✅ Preserve all your custom code in src/ and drizzle/
+- ✅ Update documentation (README.md, CLAUDE.md)
+- ✅ Update Docker and test configurations
+
+### 🚨 Force Overwrite Mode (--force-overwrite)
+
+**DANGEROUS:** This flag enables automatic overwriting of source files, but ONLY if they haven't been modified by the user.
+
+**How it works:**
+1. **Detects your current template version** by analyzing configuration files
+2. **Compares each file** in src/ and drizzle/ using SHA256 hashes
+3. **Safe to overwrite:** Files identical to the original template get updated automatically
+4. **User modified:** Files that differ from the original template are preserved
+5. **New files:** Files that don't exist in your project are added
+
+**Safety features:**
+- ⚠️ **Only overwrites files identical to the original template**
+- ⚠️ **Preserves all user-modified files**
+- ⚠️ **Shows detailed analysis before making changes**
+- ⚠️ **Warns about the dangerous operation multiple times**
+- ⚠️ **Requires explicit --force-overwrite flag**
+
+**Example output:**
+```
+📊 Source File Analysis:
+✅ 12 files can be safely overwritten (unchanged from template):
+   src/middleware.ts
+   src/lib/utils/index.ts
+   drizzle/schema.ts
+   
+⚠️  8 files have user modifications (will be preserved):
+   src/app/page.tsx
+   src/components/custom-component.tsx
+   
+ℹ️  3 new files will be added:
+   src/app/new-feature/page.tsx
+   src/components/ui/new-component.tsx
+```
+
+**Use cases for --force-overwrite:**
+- ✅ **After fresh project creation** with minimal customization
+- ✅ **When you want latest template improvements** in unmodified files
+- ✅ **For projects that closely follow template patterns**
+- ❌ **NOT for heavily customized projects**
+- ❌ **NOT without git commits** (changes cannot be undone)
+
+**Prerequisites:**
+- 🚨 **MUST have git repository** with committed changes
+- 🚨 **MUST review changes** before deploying
+- 🚨 **MUST test thoroughly** after update
+
 The script will:
 
 1. **Show available Next.js versions** (currently Next.js 15.4)

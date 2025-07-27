@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 // ANSI color codes for output
@@ -36,15 +37,197 @@ function warning(message) {
   log(`⚠️  ${message}`, 'yellow');
 }
 
+function dangerousWarning(message) {
+  log(`🚨 DANGEROUS: ${message}`, 'red');
+}
+
+// Helper function to calculate file hash
+function getFileHash(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    return crypto.createHash('sha256').update(content).digest('hex');
+  } catch (err) {
+    return null;
+  }
+}
+
+// Helper function to find the current template version a project was based on
+function detectCurrentTemplateVersion(targetDir, availableVersions) {
+  let bestMatch = null;
+  let bestMatchScore = 0;
+  
+  for (const version of availableVersions) {
+    const templateDir = path.join(path.resolve(__dirname, '..'), `nextjs-${version}`);
+    if (!fs.existsSync(templateDir)) continue;
+    
+    let matchingFiles = 0;
+    let totalFiles = 0;
+    
+    // Check a few key files to determine the base version
+    const testFiles = [
+      'next.config.js',
+      'tsconfig.json',
+      'tailwind.config.js',
+      'package.json'
+    ];
+    
+    for (const testFile of testFiles) {
+      const templateFile = path.join(templateDir, testFile);
+      const targetFile = path.join(targetDir, testFile);
+      
+      if (fs.existsSync(templateFile) && fs.existsSync(targetFile)) {
+        totalFiles++;
+        const templateHash = getFileHash(templateFile);
+        const targetHash = getFileHash(targetFile);
+        
+        if (testFile === 'package.json') {
+          // For package.json, check if dependencies structure is similar
+          try {
+            const templatePkg = JSON.parse(fs.readFileSync(templateFile, 'utf8'));
+            const targetPkg = JSON.parse(fs.readFileSync(targetFile, 'utf8'));
+            
+            const templateDeps = Object.keys(templatePkg.dependencies || {}).sort();
+            const targetDeps = Object.keys(targetPkg.dependencies || {}).sort();
+            
+            const commonDeps = templateDeps.filter(dep => targetDeps.includes(dep));
+            if (commonDeps.length / templateDeps.length > 0.8) {
+              matchingFiles++;
+            }
+          } catch (err) {
+            // Ignore JSON parse errors
+          }
+        } else if (templateHash === targetHash) {
+          matchingFiles++;
+        }
+      }
+    }
+    
+    const score = totalFiles > 0 ? matchingFiles / totalFiles : 0;
+    if (score > bestMatchScore) {
+      bestMatchScore = score;
+      bestMatch = version;
+    }
+  }
+  
+  return bestMatch;
+}
+
+// Helper function to recursively find all files in a directory
+function getAllFiles(dir, basePath = '') {
+  const files = [];
+  
+  if (!fs.existsSync(dir)) {
+    return files;
+  }
+  
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    const relativePath = path.join(basePath, entry.name);
+    
+    if (entry.isDirectory()) {
+      files.push(...getAllFiles(fullPath, relativePath));
+    } else {
+      files.push(relativePath);
+    }
+  }
+  
+  return files;
+}
+
+// Helper function to compare files and determine if they can be safely overwritten
+function analyzeSourceFiles(currentTemplateDir, newTemplateDir, targetDir) {
+  const analysis = {
+    safeToOverwrite: [],
+    userModified: [],
+    newFiles: [],
+    errors: []
+  };
+  
+  const srcDirs = ['src', 'drizzle'];
+  
+  for (const srcDir of srcDirs) {
+    const currentTemplateSrcDir = path.join(currentTemplateDir, srcDir);
+    const newTemplateSrcDir = path.join(newTemplateDir, srcDir);
+    const targetSrcDir = path.join(targetDir, srcDir);
+    
+    if (!fs.existsSync(newTemplateSrcDir)) {
+      continue;
+    }
+    
+    // Get all files from the new template
+    const newTemplateFiles = getAllFiles(newTemplateSrcDir);
+    
+    for (const relativePath of newTemplateFiles) {
+      const newTemplateFile = path.join(newTemplateSrcDir, relativePath);
+      const targetFile = path.join(targetSrcDir, relativePath);
+      const currentTemplateFile = path.join(currentTemplateSrcDir, relativePath);
+      const fullRelativePath = path.join(srcDir, relativePath);
+      
+      if (!fs.existsSync(targetFile)) {
+        // File doesn't exist in target - it's a new file
+        analysis.newFiles.push(fullRelativePath);
+        continue;
+      }
+      
+      const targetHash = getFileHash(targetFile);
+      const newTemplateHash = getFileHash(newTemplateFile);
+      
+      if (!targetHash || !newTemplateHash) {
+        analysis.errors.push(`Failed to read file: ${fullRelativePath}`);
+        continue;
+      }
+      
+      // If target file is identical to new template, skip (no update needed)
+      if (targetHash === newTemplateHash) {
+        continue;
+      }
+      
+      // Check if target file matches the current template (meaning user hasn't modified it)
+      if (fs.existsSync(currentTemplateFile)) {
+        const currentTemplateHash = getFileHash(currentTemplateFile);
+        
+        if (currentTemplateHash && targetHash === currentTemplateHash) {
+          // Target file matches current template - safe to overwrite
+          analysis.safeToOverwrite.push(fullRelativePath);
+        } else {
+          // Target file differs from current template - user has modified it
+          analysis.userModified.push(fullRelativePath);
+        }
+      } else {
+        // File doesn't exist in current template - treat as user-modified
+        analysis.userModified.push(fullRelativePath);
+      }
+    }
+  }
+  
+  return analysis;
+}
+
 // Parse command line arguments
 const args = process.argv.slice(2);
-if (args.length !== 2) {
-  error('Usage: ./scripts/update-next <version> <target-directory>');
-  error('Example: ./scripts/update-next 15.4 /path/to/existing/project');
+let forceOverwrite = false;
+let version, targetDir;
+
+// Check for flags
+const argsCopy = [...args];
+if (argsCopy.includes('--force-overwrite')) {
+  forceOverwrite = true;
+  argsCopy.splice(argsCopy.indexOf('--force-overwrite'), 1);
+}
+
+if (argsCopy.length !== 2) {
+  error('Usage: ./scripts/update-next <version> <target-directory> [--force-overwrite]');
+  error('Example: ./scripts/update-next 15.5 /path/to/existing/project');
+  error('');
+  error('Flags:');
+  error('  --force-overwrite  🚨 DANGEROUS: Overwrite src/ and drizzle/ files if unchanged from template');
+  error('                     Only files identical to the original template will be overwritten');
   process.exit(1);
 }
 
-const [version, targetDir] = args;
+[version, targetDir] = argsCopy;
 const rootDir = path.resolve(__dirname, '..');
 const sourceDir = path.join(rootDir, `nextjs-${version}`);
 const resolvedTargetDir = path.resolve(targetDir);
@@ -53,12 +236,22 @@ log(`🚀 Next.js Version Update Script`, 'bright');
 log(`   Version: ${version}`, 'cyan');
 log(`   Source:  ${sourceDir}`, 'cyan');
 log(`   Target:  ${resolvedTargetDir}`, 'cyan');
+
+if (forceOverwrite) {
+  dangerousWarning('FORCE OVERWRITE MODE ENABLED');
+  dangerousWarning('Will overwrite unchanged src/ and drizzle/ files');
+}
+
 console.log();
 
 // Validation
 if (!fs.existsSync(sourceDir)) {
+  const availableVersions = fs.readdirSync(rootDir)
+    .filter(d => d.startsWith('nextjs-'))
+    .map(d => d.replace('nextjs-', ''));
+  
   error(`Source directory does not exist: ${sourceDir}`);
-  error(`Available versions: ${fs.readdirSync(rootDir).filter(d => d.startsWith('nextjs-')).join(', ')}`);
+  error(`Available versions: ${availableVersions.join(', ')}`);
   process.exit(1);
 }
 
@@ -73,9 +266,29 @@ if (!fs.existsSync(targetPackageJsonPath)) {
   process.exit(1);
 }
 
+// Detect current template version for force-overwrite mode
+let currentTemplateVersion = null;
+let currentTemplateDir = null;
+
+if (forceOverwrite) {
+  const availableVersions = fs.readdirSync(rootDir)
+    .filter(d => d.startsWith('nextjs-'))
+    .map(d => d.replace('nextjs-', ''));
+  
+  currentTemplateVersion = detectCurrentTemplateVersion(resolvedTargetDir, availableVersions);
+  
+  if (currentTemplateVersion) {
+    currentTemplateDir = path.join(rootDir, `nextjs-${currentTemplateVersion}`);
+    info(`Detected current template version: ${currentTemplateVersion}`);
+  } else {
+    warning('Could not detect current template version - will be more conservative with overwrites');
+  }
+}
+
 // Files and directories to copy (excluding src/, drizzle/, *.db files)
 const filesToCopy = [
   'CLAUDE.md',
+  'README.md',
   'Dockerfile',
   'docker-compose.yml',
   'docker-compose.dev.yml',
@@ -85,11 +298,15 @@ const filesToCopy = [
   'tailwind.config.js',
   'postcss.config.js',
   'drizzle.config.ts',
+  'vitest.config.mjs',
+  'vitest.setup.ts',
+  'playwright.config.ts',
   'env.example',
   '.gitignore',
   '.dockerignore',
   'emails',
-  'scripts'
+  'scripts',
+  'tests'
 ];
 
 // Files to skip completely
@@ -111,6 +328,54 @@ const filesToSkip = [
 info('Starting update process...');
 
 try {
+  // Analyze src/ and drizzle/ files if force-overwrite is enabled
+  let sourceAnalysis = null;
+  if (forceOverwrite && currentTemplateDir) {
+    info('Analyzing source files for safe overwrites...');
+    sourceAnalysis = analyzeSourceFiles(currentTemplateDir, sourceDir, resolvedTargetDir);
+    
+    console.log();
+    log('📊 Source File Analysis:', 'bright');
+    
+    if (sourceAnalysis.safeToOverwrite.length > 0) {
+      success(`${sourceAnalysis.safeToOverwrite.length} files can be safely overwritten (unchanged from template):`);
+      sourceAnalysis.safeToOverwrite.forEach(file => log(`   ${file}`, 'green'));
+    }
+    
+    if (sourceAnalysis.newFiles.length > 0) {
+      info(`${sourceAnalysis.newFiles.length} new files will be added:`);
+      sourceAnalysis.newFiles.forEach(file => log(`   ${file}`, 'blue'));
+    }
+    
+    if (sourceAnalysis.userModified.length > 0) {
+      warning(`${sourceAnalysis.userModified.length} files have user modifications (will be preserved):`);
+      sourceAnalysis.userModified.forEach(file => log(`   ${file}`, 'yellow'));
+    }
+    
+    if (sourceAnalysis.errors.length > 0) {
+      error(`${sourceAnalysis.errors.length} files had errors during analysis:`);
+      sourceAnalysis.errors.forEach(file => log(`   ${file}`, 'red'));
+    }
+    
+    console.log();
+    
+    // Safety confirmation for dangerous operation
+    if (sourceAnalysis.safeToOverwrite.length > 0 || sourceAnalysis.newFiles.length > 0) {
+      dangerousWarning('You are about to overwrite source files!');
+      dangerousWarning('This operation cannot be undone without git!');
+      warning('Make sure you have committed all changes to git before proceeding.');
+      console.log();
+      
+      // In a real interactive script, you'd prompt for confirmation here
+      // For now, we'll show what would happen
+      info('Files that would be overwritten/added:');
+      [...sourceAnalysis.safeToOverwrite, ...sourceAnalysis.newFiles].forEach(file => {
+        log(`   ${file}`, 'cyan');
+      });
+      console.log();
+    }
+  }
+
   // Read existing package.json to preserve custom metadata
   const targetPackageJson = JSON.parse(fs.readFileSync(targetPackageJsonPath, 'utf8'));
   const sourcePackageJson = JSON.parse(fs.readFileSync(path.join(sourceDir, 'package.json'), 'utf8'));
@@ -156,6 +421,45 @@ try {
     }
   }
 
+  // Handle src/ and drizzle/ files if force-overwrite is enabled
+  if (forceOverwrite && sourceAnalysis) {
+    // Copy safe-to-overwrite files
+    for (const relativePath of sourceAnalysis.safeToOverwrite) {
+      const sourcePath = path.join(sourceDir, relativePath);
+      const targetPath = path.join(resolvedTargetDir, relativePath);
+      
+      if (fs.existsSync(sourcePath)) {
+        info(`Overwriting unchanged file: ${relativePath}`);
+        
+        // Ensure target directory exists
+        const targetDirPath = path.dirname(targetPath);
+        if (!fs.existsSync(targetDirPath)) {
+          fs.mkdirSync(targetDirPath, { recursive: true });
+        }
+        
+        fs.copyFileSync(sourcePath, targetPath);
+      }
+    }
+    
+    // Copy new files
+    for (const relativePath of sourceAnalysis.newFiles) {
+      const sourcePath = path.join(sourceDir, relativePath);
+      const targetPath = path.join(resolvedTargetDir, relativePath);
+      
+      if (fs.existsSync(sourcePath)) {
+        info(`Adding new file: ${relativePath}`);
+        
+        // Ensure target directory exists
+        const targetDirPath = path.dirname(targetPath);
+        if (!fs.existsSync(targetDirPath)) {
+          fs.mkdirSync(targetDirPath, { recursive: true });
+        }
+        
+        fs.copyFileSync(sourcePath, targetPath);
+      }
+    }
+  }
+
   // Update package.json with new dependencies but preserve metadata
   const updatedPackageJson = {
     ...sourcePackageJson,
@@ -196,24 +500,56 @@ try {
     process.exit(1);
   }
 
+  // Run npm audit fix
+  info('Running security audit...');
+  try {
+    execSync('npm audit fix', { 
+      cwd: resolvedTargetDir, 
+      stdio: 'inherit',
+      timeout: 120000 // 2 minute timeout
+    });
+  } catch (auditError) {
+    warning('npm audit fix had issues. You may need to review security vulnerabilities manually.');
+  }
+
   console.log();
   success(`Successfully updated project to Next.js ${version}!`);
   console.log();
   
   log('📋 Next Steps:', 'bright');
   info(`1. cd ${resolvedTargetDir}`);
-  info('2. Review any breaking changes in your src/ code');
-  info('3. Update your environment variables if needed');
-  info('4. Run database migrations: npm run db:migrate');
-  info('5. Test your application: npm run dev');
-  info('6. Run type checking: npm run check');
+  
+  if (forceOverwrite && sourceAnalysis && sourceAnalysis.userModified.length > 0) {
+    warning('2. Review files with user modifications for breaking changes:');
+    sourceAnalysis.userModified.forEach(file => log(`     ${file}`, 'yellow'));
+  } else {
+    info('2. Review any breaking changes in your src/ code');
+  }
+  
+  info('3. Update your environment variables if needed (check env.example)');
+  info('4. Run database migrations: npm run db:generate && npm run db:migrate');
+  info('5. Run type checking: npm run check');
+  info('6. Run tests: npm run test');
+  info('7. Test your application: npm run dev');
   
   console.log();
   warning('⚠️  Important Reminders:');
-  warning('• Your src/ directory was NOT modified - review for breaking changes');
-  warning('• Your database and migrations were NOT modified');
+  
+  if (forceOverwrite) {
+    if (sourceAnalysis && sourceAnalysis.safeToOverwrite.length > 0) {
+      warning(`• ${sourceAnalysis.safeToOverwrite.length} source files were automatically updated`);
+    }
+    if (sourceAnalysis && sourceAnalysis.userModified.length > 0) {
+      warning(`• ${sourceAnalysis.userModified.length} modified source files were preserved`);
+    }
+  } else {
+    warning('• Your src/ directory was NOT modified - review for breaking changes');
+    warning('• Your drizzle/ directory was NOT modified');
+  }
+  
   warning('• Check for any new environment variables in env.example');
   warning('• Test all functionality thoroughly before deploying');
+  warning('• Run npm run check to verify TypeScript compilation');
 
 } catch (err) {
   error(`Update failed: ${err.message}`);
