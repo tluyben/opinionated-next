@@ -15,6 +15,8 @@ NC='\033[0m' # No Color
 # Get the script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+# Create projects in the parent directory of opinionated-next
+PARENT_DIR="$(dirname "$PROJECT_ROOT")"
 
 echo -e "${BLUE}🚀 Opinionated Next.js Starter - Project Creator${NC}"
 echo "=================================================="
@@ -54,7 +56,7 @@ validate_project_name() {
     fi
     
     # Check if directory already exists
-    if [[ -d "$PROJECT_ROOT/$name" ]]; then
+    if [[ -d "$PARENT_DIR/$name" ]]; then
         echo -e "${RED}❌ Directory '$name' already exists${NC}"
         return 1
     fi
@@ -120,7 +122,7 @@ echo ""
 echo -e "${YELLOW}📝 Project Summary:${NC}"
 echo "  Source:      nextjs-$SELECTED_VERSION"
 echo "  Destination: $project_name"
-echo "  Location:    $PROJECT_ROOT/$project_name"
+echo "  Location:    $PARENT_DIR/$project_name"
 echo ""
 
 read -p "Proceed with project creation? (y/N): " confirm
@@ -135,10 +137,10 @@ echo -e "${BLUE}🔄 Creating project '$project_name'...${NC}"
 
 # Step 1: Copy the source directory
 echo -e "${YELLOW}📁 Copying nextjs-$SELECTED_VERSION to $project_name...${NC}"
-cp -r "$PROJECT_ROOT/nextjs-$SELECTED_VERSION" "$PROJECT_ROOT/$project_name"
+cp -r "$PROJECT_ROOT/nextjs-$SELECTED_VERSION" "$PARENT_DIR/$project_name"
 
 # Step 2: Change to the new project directory
-cd "$PROJECT_ROOT/$project_name"
+cd "$PARENT_DIR/$project_name"
 
 # Step 3: Update package.json name
 echo -e "${YELLOW}📝 Updating package.json name...${NC}"
