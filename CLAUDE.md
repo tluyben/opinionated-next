@@ -37,14 +37,33 @@ This is a comprehensive, opinionated Next.js starter template that stays current
 - Touch-friendly UI elements and proper spacing
 - Optimized layouts for all screen sizes
 
-### Test-Driven Development (TDD)
-- **Write tests FIRST, then implementation** - red-green-refactor cycle
-- **Unit tests** for utilities, server actions, and business logic
-- **Component tests** for UI components using Testing Library
-- **Integration tests** for API routes and database operations
-- **E2E tests** for critical user flows with Playwright
-- **Minimum 80% code coverage** for non-UI code
-- **Test files co-located** with source files (`*.test.ts`, `*.test.tsx`)
+### 🚨 MANDATORY TEST-DRIVEN DEVELOPMENT (TDD) - NO EXCEPTIONS! 🚨
+- **🔴 EVERY FEATURE, PAGE, COMPONENT, AND DETAIL MUST HAVE TESTS** - ZERO TOLERANCE POLICY
+- **🔴 TESTS MUST PASS BEFORE ANY CODE IS CONSIDERED COMPLETE** - NO EXCEPTIONS
+- **🔴 Write tests FIRST, then implementation** - red-green-refactor cycle is MANDATORY
+- **🔴 NO FEATURE IS COMPLETE WITHOUT 100% PASSING TESTS** - this is NON-NEGOTIABLE
+- **🔴 Unit tests** for utilities, server actions, and business logic - REQUIRED
+- **🔴 Component tests** for UI components using Testing Library - REQUIRED  
+- **🔴 Integration tests** for API routes and database operations - REQUIRED
+- **🔴 E2E tests** for critical user flows with Playwright - REQUIRED
+- **🔴 Minimum 90% code coverage** for ALL code (increased from 80%)
+- **🔴 Test files co-located** with source files (`*.test.ts`, `*.test.tsx`) - MANDATORY
+- **🔴 ERROR PAGES MUST HAVE TESTS** - test game functionality, error display, navigation
+- **🔴 EVERY SERVER ACTION MUST HAVE COMPREHENSIVE TESTS** - success, failure, edge cases
+- **🔴 ALL DATABASE OPERATIONS MUST BE TESTED** - CRUD operations, migrations, constraints
+- **🔴 AUTHENTICATION FLOWS MUST BE FULLY TESTED** - login, logout, registration, OAuth
+- **🔴 PAYMENT PROCESSING MUST HAVE COMPLETE TEST COVERAGE** - Stripe integration, webhooks
+- **🔴 LLM INTEGRATION MUST BE TESTED** - all providers, streaming, error handling
+- **🔴 EMAIL/SMS FUNCTIONALITY MUST BE TESTED** - templates, delivery, fallbacks
+- **🔴 FILE UPLOAD SYSTEM MUST BE TESTED** - S3, database fallback, validation, limits
+- **🔴 RESPONSIVE DESIGN MUST BE TESTED** - mobile breakpoints, sidebar collapse
+- **🔴 DARK/LIGHT THEME SWITCHING MUST BE TESTED** - all components, persistence
+- **🔴 ERROR TRACKING SYSTEM MUST BE TESTED** - capture, grouping, admin dashboard
+- **🔴 ADMIN FUNCTIONALITY MUST BE TESTED** - user management, settings, permissions
+- **🔴 SKELETON LOADING STATES MUST BE TESTED** - all variants, proper display
+- **🔴 SECURITY MEASURES MUST BE TESTED** - authentication, authorization, CSRF protection
+
+**⚠️ CRITICAL WARNING: ANY CODE SUBMITTED WITHOUT COMPREHENSIVE TESTS WILL BE REJECTED ⚠️**
 
 ### Loading States & UX
 - **Skeleton components REQUIRED** for all async operations - NO traditional spinners
@@ -567,14 +586,28 @@ export default function DashboardPage() {
 - Development Docker Compose for local development
 - Environment-specific configurations
 
-### Testing Strategy
-- **Unit Tests**: Server actions, utilities, business logic
-- **Component Tests**: React components with Testing Library
-- **Integration Tests**: Database operations, API endpoints
-- **E2E Tests**: Critical user flows (auth, payments, core features)
-- **Test Organization**: Co-located with source files
-- **Mocking**: Database and external services in tests
-- **CI/CD Integration**: Tests run automatically on push
+### 🚨 COMPREHENSIVE TESTING STRATEGY - MANDATORY COMPLIANCE 🚨
+- **🔴 Unit Tests**: EVERY server action, utility, and business logic function MUST be tested
+- **🔴 Component Tests**: EVERY React component MUST have comprehensive Testing Library tests
+- **🔴 Integration Tests**: ALL database operations and API endpoints MUST be tested
+- **🔴 E2E Tests**: ALL critical user flows MUST have Playwright tests (auth, payments, core features)
+- **🔴 Game Tests**: ALL retro games in error pages MUST be tested (controls, scoring, game over)
+- **🔴 Error Boundary Tests**: ALL error scenarios MUST be tested with proper fallbacks
+- **🔴 Responsive Tests**: ALL breakpoints and mobile interactions MUST be tested
+- **🔴 Authentication Tests**: ALL OAuth flows, login/logout, session management MUST be tested
+- **🔴 Payment Tests**: ALL Stripe operations, webhooks, subscription flows MUST be tested
+- **🔴 File Upload Tests**: ALL storage options (S3, database), validation, limits MUST be tested
+- **🔴 LLM Tests**: ALL providers, streaming responses, error handling MUST be tested
+- **🔴 Email/SMS Tests**: ALL templates, delivery mechanisms, fallbacks MUST be tested
+- **🔴 Database Tests**: ALL schema changes, migrations, CRUD operations MUST be tested
+- **🔴 Security Tests**: ALL authentication, authorization, CSRF protection MUST be tested
+- **🔴 Performance Tests**: ALL loading states, skeleton components MUST be tested
+- **🔴 Test Organization**: Co-located with source files - NO EXCEPTIONS
+- **🔴 Mocking**: Database and external services in tests - MANDATORY
+- **🔴 CI/CD Integration**: Tests run automatically on push - REQUIRED
+- **🔴 Test Coverage Reports**: MUST maintain 90%+ coverage across ALL code
+
+**🔴 ZERO TOLERANCE POLICY: ALL FEATURES MUST HAVE PASSING TESTS BEFORE COMPLETION 🔴**
 
 ### LLM Integration
 - **Multi-Provider Support**: OpenAI, Anthropic, OpenRouter, Groq, Cerebras
@@ -1040,13 +1073,36 @@ GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 ```
 
-### Enforcement
+### 🚨 MANDATORY ENFORCEMENT - ZERO TOLERANCE POLICIES 🚨
+
+#### 🔴 TESTING REQUIREMENTS (TOP PRIORITY - NO EXCEPTIONS)
+- **🔴 EVERY SINGLE FEATURE MUST HAVE COMPREHENSIVE TESTS** - NO FEATURE IS COMPLETE WITHOUT TESTS
+- **🔴 ALL TESTS MUST PASS BEFORE ANY CODE IS CONSIDERED FINISHED** - ZERO TOLERANCE FOR FAILING TESTS
+- **🔴 90%+ CODE COVERAGE REQUIRED** - NO EXCEPTIONS, NO EXCUSES
+- **🔴 TDD WORKFLOW MANDATORY** - write failing tests first, then implement code to pass
+- **🔴 RUN TESTS BEFORE EVERY COMMIT** - ensure all tests pass before pushing code
+- **🔴 TEST ALL ERROR PAGES AND GAMES** - Snake, Space Invaders, Pac-Man, Tetris functionality
+- **🔴 TEST ALL AUTHENTICATION FLOWS** - OAuth, login, logout, session management
+- **🔴 TEST ALL PAYMENT PROCESSING** - Stripe integration, webhooks, subscriptions
+- **🔴 TEST ALL DATABASE OPERATIONS** - CRUD, migrations, schema changes
+- **🔴 TEST ALL FILE UPLOAD SCENARIOS** - S3, database fallback, validation, limits
+- **🔴 TEST ALL LLM INTEGRATIONS** - all providers, streaming, error handling
+- **🔴 TEST ALL EMAIL/SMS FUNCTIONALITY** - templates, delivery, fallbacks
+- **🔴 TEST ALL RESPONSIVE BREAKPOINTS** - mobile, tablet, desktop layouts
+- **🔴 TEST ALL THEME SWITCHING** - dark/light mode consistency
+- **🔴 TEST ALL SKELETON LOADING STATES** - every variant, proper display timing
+- **🔴 TEST ALL ERROR TRACKING** - capture, grouping, admin dashboard functionality
+- **🔴 TEST ALL SECURITY MEASURES** - authentication, authorization, CSRF protection
+
+#### Documentation and Schema Requirements
 - **AI Assistants MUST check** if changes require documentation updates
 - **No exceptions** - documentation updates are not optional
 - **Verify env.example** is updated when new environment variables are introduced
 - **Cross-reference** README.md with actual implemented features for accuracy
 - **🚨 ALWAYS GENERATE AND RUN MIGRATIONS** when making schema changes (`npm run db:generate && npm run db:migrate`)
 - **🚨 ALWAYS AWAIT PARAMS** in Next.js 15+ dynamic routes (`const { id } = await params`)
+
+#### System Requirements
 - **Use SQLite timestamp format** with `strftime('%s', 'now')` for default values
 - **Create admin user** on initial setup and after database resets
 - **File storage flexibility:**
@@ -1055,6 +1111,12 @@ GOOGLE_CLIENT_SECRET="your-google-client-secret"
 - **Environment files:**
   - **env.example** (no dot prefix) for documentation
   - **.env*** patterns in .gitignore for security
+- **Use Server Actions** for all page interactions, NOT custom APIs
+- **Always run `npm run check`** after making changes to verify TypeScript compilation
+- **Security audit must show minimal vulnerabilities** - run `npm audit` and fix all production-affecting issues
+- **Always use `devIndicators: false`** in next.config.js to hide the annoying development indicator button
+
+#### Integration Testing Requirements
 - **Test authentication flows** with all OAuth providers
 - **Verify email/SMS functionality** in development
 - **Check environment variables** are properly configured
@@ -1066,21 +1128,16 @@ GOOGLE_CLIENT_SECRET="your-google-client-secret"
 - **Test queue system** processes jobs correctly
 - **Test development impersonation** middleware works correctly
 - **Ensure API key management** works for REST endpoints (when they exist)
-- **Use Server Actions** for all page interactions, NOT custom APIs
-- **Always run `npm run check`** after making changes to verify TypeScript compilation
-- **Security audit must show minimal vulnerabilities** - run `npm audit` and fix all production-affecting issues
 - **Ensure proper error handling** throughout the application
-- **Always use `devIndicators: false`** in next.config.js to hide the annoying development indicator button
-- **Follow TDD workflow** - write failing tests first, then implement code to pass
-- **Run tests before committing** - ensure all tests pass before pushing code
-- **Maintain test coverage** - aim for 80%+ coverage on business logic
-- **LLM Integration usage:**
+
+#### Feature-Specific Testing Requirements
+- **LLM Integration testing:**
   - **Import from `@/lib/llm`** for client utilities
   - **Use `LLMClient.chat()` or `LLMClient.streamChat()`** for programmatic access
   - **Pre-built chat component** available at `@/components/llm/streaming-chat`
   - **Demo available at `/demo/llm`** to test all configured providers
   - **Configure only the providers you need** - others will be automatically disabled
-- **Stripe Payments usage:**
+- **Stripe Payments testing:**
   - **Import from `@/lib/payments`** for types and configuration
   - **Use server actions from `@/lib/actions/payments`** for payment operations
   - **Pre-built components** in `@/components/payments/`
@@ -1088,8 +1145,31 @@ GOOGLE_CLIENT_SECRET="your-google-client-secret"
   - **Webhook endpoint** at `/api/webhooks/stripe` for event processing
   - **Configure Stripe keys** in environment variables to enable
 
-## Deployment Checklist
+**🚨 CRITICAL REMINDER: NO CODE IS PRODUCTION-READY WITHOUT COMPREHENSIVE, PASSING TESTS 🚨**
 
+## 🚨 DEPLOYMENT CHECKLIST - ALL TESTS MUST PASS FIRST 🚨
+
+### 🔴 CRITICAL TESTING REQUIREMENTS (MUST COMPLETE BEFORE DEPLOYMENT)
+- [ ] **🔴 ALL UNIT TESTS PASSING** - Every function, utility, and server action tested
+- [ ] **🔴 ALL COMPONENT TESTS PASSING** - Every React component thoroughly tested
+- [ ] **🔴 ALL INTEGRATION TESTS PASSING** - Database, API, and system integration verified
+- [ ] **🔴 ALL E2E TESTS PASSING** - Critical user flows completely validated
+- [ ] **🔴 ALL ERROR PAGE GAMES TESTED** - Snake, Space Invaders, Pac-Man, Tetris functionality verified
+- [ ] **🔴 ALL AUTHENTICATION FLOWS TESTED** - OAuth, login, logout, session management validated
+- [ ] **🔴 ALL PAYMENT PROCESSING TESTED** - Stripe integration, webhooks, subscriptions verified
+- [ ] **🔴 ALL DATABASE OPERATIONS TESTED** - CRUD, migrations, schema changes validated
+- [ ] **🔴 ALL FILE UPLOAD SCENARIOS TESTED** - S3, database fallback, validation, limits verified
+- [ ] **🔴 ALL LLM INTEGRATIONS TESTED** - All providers, streaming, error handling validated
+- [ ] **🔴 ALL EMAIL/SMS FUNCTIONALITY TESTED** - Templates, delivery, fallbacks verified
+- [ ] **🔴 ALL RESPONSIVE BREAKPOINTS TESTED** - Mobile, tablet, desktop layouts validated
+- [ ] **🔴 ALL THEME SWITCHING TESTED** - Dark/light mode consistency verified
+- [ ] **🔴 ALL SKELETON LOADING STATES TESTED** - Every variant, proper display timing validated
+- [ ] **🔴 ALL ERROR TRACKING TESTED** - Capture, grouping, admin dashboard functionality verified
+- [ ] **🔴 ALL SECURITY MEASURES TESTED** - Authentication, authorization, CSRF protection validated
+- [ ] **🔴 TEST COVERAGE ≥ 90%** - No exceptions, comprehensive coverage verified
+- [ ] **🔴 NO FAILING TESTS** - Zero tolerance for any failing tests in any category
+
+### System Configuration Requirements
 - [ ] Environment variables configured
 - [ ] Database migrations run
 - [ ] Admin user created and credentials noted
@@ -1107,10 +1187,8 @@ GOOGLE_CLIENT_SECRET="your-google-client-secret"
 - [ ] Development impersonation disabled in production
 - [ ] Server Actions working correctly (no custom APIs unless requested)
 - [ ] Error monitoring configured
-- [ ] All unit tests passing
-- [ ] All integration tests passing
-- [ ] Critical E2E tests passing
-- [ ] Test coverage meets minimum requirements (80%+ for business logic)
+
+**🚨 DEPLOYMENT IS FORBIDDEN UNTIL ALL TESTS PASS WITH 90%+ COVERAGE 🚨**
 
 This project serves as a comprehensive starting point for modern SaaS applications, with all the essential features and integrations needed to launch quickly while maintaining high code quality and user experience standards.
 
@@ -1149,13 +1227,18 @@ This is an **OPINIONATED** Next.js starter template with predefined architecture
 - ❌ **NEVER** initialize git repository (`git init`)
 - ❌ **NEVER** modify `.gitignore` or `.dockerignore` files
 
-### 🚨 MANDATORY AFTER EVERY CHANGE
+### 🚨 MANDATORY AFTER EVERY CHANGE - NO EXCEPTIONS
+- ✅ **🔴 WRITE TESTS FIRST** - TDD approach is NON-NEGOTIABLE
+- ✅ **🔴 ALL TESTS MUST PASS** - Zero tolerance for failing tests
+- ✅ **🔴 90%+ CODE COVERAGE REQUIRED** - No feature is complete without comprehensive tests
+- ✅ **🔴 RUN `npm run test` AFTER EVERY CHANGE** - Immediate test validation required
+- ✅ **🔴 TEST EVERY COMPONENT, FUNCTION, AND FEATURE** - Comprehensive testing mandatory
 - ✅ **ALWAYS run `npm run check`** immediately after making ANY changes
 - ✅ **MUST fix ALL TypeScript errors** before continuing
 - ✅ **No exceptions** - TypeScript must compile cleanly
 - ✅ **Faster than build** - use for quick validation
-- ✅ **Run tests after implementing features** - use `npm run test` to verify
-- ✅ **Write tests FIRST for new features** - follow TDD approach
+
+**🚨 CRITICAL: NO CODE IS ACCEPTED WITHOUT COMPREHENSIVE, PASSING TESTS 🚨**
 
 ### DATABASE SCHEMA CHANGES
 - Database schema is defined in `./src/lib/db/schema.ts`

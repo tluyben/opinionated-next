@@ -32,6 +32,26 @@ export const apiKeys = sqliteTable('api_keys', {
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
+export const apiRequests = sqliteTable('api_requests', {
+  id: text('id').primaryKey(),
+  apiKeyId: text('api_key_id').notNull().references(() => apiKeys.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  method: text('method').notNull(), // GET, POST, PUT, DELETE, etc.
+  endpoint: text('endpoint').notNull(), // /api/users, /api/data, etc.
+  path: text('path').notNull(), // full request path with query params
+  statusCode: integer('status_code').notNull(), // 200, 404, 500, etc.
+  responseTime: integer('response_time'), // response time in milliseconds
+  requestSize: integer('request_size'), // request body size in bytes
+  responseSize: integer('response_size'), // response body size in bytes
+  ipAddress: text('ip_address'), // client IP address
+  userAgent: text('user_agent'), // client user agent
+  referer: text('referer'), // referer header
+  rateLimitHit: integer('rate_limit_hit', { mode: 'boolean' }).default(false), // was rate limit exceeded?
+  errorMessage: text('error_message'), // error message if request failed
+  metadata: text('metadata'), // additional request context as JSON
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
 export const files = sqliteTable('files', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
@@ -216,6 +236,8 @@ export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
+export type ApiRequest = typeof apiRequests.$inferSelect;
+export type NewApiRequest = typeof apiRequests.$inferInsert;
 export type File = typeof files.$inferSelect;
 export type NewFile = typeof files.$inferInsert;
 export type Payment = typeof payments.$inferSelect;

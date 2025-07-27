@@ -1,7 +1,7 @@
 'use server';
 
-import { db, apiKeys } from '@/lib/db';
-import { eq, and } from 'drizzle-orm';
+import { db, apiKeys, apiRequests } from '@/lib/db';
+import { eq, and, count, sql, gte } from 'drizzle-orm';
 import { getSession } from '@/lib/auth/session';
 import { generateId } from '@/lib/utils';
 import bcrypt from 'bcryptjs';
@@ -86,5 +86,79 @@ export async function getUserApiKeys() {
   } catch (error) {
     console.error('Get API keys error:', error);
     return [];
+  }
+}
+
+export async function getApiKeyStats() {
+  const user = await getSession();
+  if (!user) {
+    return {
+      activeKeys: 0,
+      requestsToday: 0,
+      monthlyUsage: 0,
+      rateLimitViolations: 0
+    };
+  }
+
+  try {
+    // Get total active keys for user
+    const [activeKeysResult] = await db
+      .select({ count: count() })
+      .from(apiKeys)
+      .where(eq(apiKeys.userId, user.id));
+
+    // Calculate date ranges
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Get requests today
+    const [requestsTodayResult] = await db
+      .select({ count: count() })
+      .from(apiRequests)
+      .where(
+        and(
+          eq(apiRequests.userId, user.id),
+          gte(apiRequests.createdAt, startOfToday)
+        )
+      );
+
+    // Get monthly usage
+    const [monthlyUsageResult] = await db
+      .select({ count: count() })
+      .from(apiRequests)
+      .where(
+        and(
+          eq(apiRequests.userId, user.id),
+          gte(apiRequests.createdAt, startOfMonth)
+        )
+      );
+
+    // Get rate limit violations this month
+    const [rateLimitViolationsResult] = await db
+      .select({ count: count() })
+      .from(apiRequests)
+      .where(
+        and(
+          eq(apiRequests.userId, user.id),
+          eq(apiRequests.rateLimitHit, true),
+          gte(apiRequests.createdAt, startOfMonth)
+        )
+      );
+
+    return {
+      activeKeys: activeKeysResult.count,
+      requestsToday: requestsTodayResult.count,
+      monthlyUsage: monthlyUsageResult.count,
+      rateLimitViolations: rateLimitViolationsResult.count
+    };
+  } catch (error) {
+    console.error('Get API key stats error:', error);
+    return {
+      activeKeys: 0,
+      requestsToday: 0,
+      monthlyUsage: 0,
+      rateLimitViolations: 0
+    };
   }
 }

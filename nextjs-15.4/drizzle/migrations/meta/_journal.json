@@ -36,6 +36,13 @@
       "when": 1753450561781,
       "tag": "20250725143601_mixed_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1753527120644,
+      "tag": "20250726115200_yellow_sasquatch",
+      "breakpoints": true
     }
   ]
 }
