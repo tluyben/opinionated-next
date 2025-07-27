@@ -2,6 +2,7 @@
 
 # Opinionated Next.js Starter - Project Creator
 # Creates a new project from an existing version template
+# Requires Node.js >= 20 (automatically installs via nvm if available)
 
 set -e  # Exit on any error
 
@@ -12,6 +13,96 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Function to check Node.js version
+check_node_version() {
+    local required_major=20
+    
+    # Check if node is available
+    if ! command -v node &> /dev/null; then
+        echo -e "${RED}❌ Node.js is not installed${NC}"
+        echo -e "${YELLOW}Attempting to install Node.js $required_major using nvm...${NC}"
+        try_nvm_install
+        return $?
+    fi
+    
+    # Get current Node.js version
+    local node_version=$(node --version | sed 's/v//')
+    local major_version=$(echo "$node_version" | cut -d'.' -f1)
+    
+    echo -e "${BLUE}📋 Current Node.js version: v$node_version${NC}"
+    
+    if [[ $major_version -ge $required_major ]]; then
+        echo -e "${GREEN}✅ Node.js version meets requirements (>= v$required_major)${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ Node.js version $node_version is too old (required: >= v$required_major)${NC}"
+        echo -e "${YELLOW}Attempting to install Node.js $required_major using nvm...${NC}"
+        try_nvm_install
+        return $?
+    fi
+}
+
+# Function to try installing Node.js 20 using nvm
+try_nvm_install() {
+    local required_major=20
+    
+    # Check if nvm is available as a command or function
+    if ! command -v nvm &> /dev/null && ! type nvm &> /dev/null; then
+        # Try sourcing nvm from common locations
+        local nvm_locations=(
+            "$HOME/.nvm/nvm.sh"
+            "/usr/local/opt/nvm/nvm.sh"
+            "/opt/homebrew/opt/nvm/nvm.sh"
+            "$HOME/.bashrc"
+            "$HOME/.zshrc"
+        )
+        
+        for location in "${nvm_locations[@]}"; do
+            if [[ -s "$location" ]]; then
+                echo -e "${YELLOW}🔍 Found potential nvm source at $location, loading...${NC}"
+                source "$location" 2>/dev/null || continue
+                # Check if nvm is now available
+                if command -v nvm &> /dev/null || type nvm &> /dev/null; then
+                    break
+                fi
+            fi
+        done
+    fi
+    
+    # Check again if nvm is now available (command or function)
+    if ! command -v nvm &> /dev/null && ! type nvm &> /dev/null; then
+        echo -e "${RED}❌ nvm is not installed or not available${NC}"
+        echo -e "${RED}❌ Cannot automatically install Node.js $required_major${NC}"
+        echo ""
+        echo -e "${YELLOW}Please install Node.js $required_major manually:${NC}"
+        echo "  1. Install nvm: https://github.com/nvm-sh/nvm#installing-and-updating"
+        echo "  2. Run: nvm install $required_major && nvm use $required_major"
+        echo "  3. Or install Node.js directly: https://nodejs.org/"
+        echo ""
+        exit 1
+    fi
+    
+    echo -e "${YELLOW}📦 Installing Node.js $required_major using nvm...${NC}"
+    
+    # Install and use Node.js 20
+    if nvm install $required_major && nvm use $required_major; then
+        echo -e "${GREEN}✅ Successfully installed and activated Node.js $required_major${NC}"
+        
+        # Verify the installation
+        local new_version=$(node --version | sed 's/v//')
+        echo -e "${GREEN}✅ Node.js version is now: v$new_version${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ Failed to install Node.js $required_major using nvm${NC}"
+        echo ""
+        echo -e "${YELLOW}Please install Node.js $required_major manually:${NC}"
+        echo "  1. Run: nvm install $required_major && nvm use $required_major"
+        echo "  2. Or install Node.js directly: https://nodejs.org/"
+        echo ""
+        exit 1
+    fi
+}
+
 # Get the script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -20,6 +111,12 @@ PARENT_DIR="$(dirname "$PROJECT_ROOT")"
 
 echo -e "${BLUE}🚀 Opinionated Next.js Starter - Project Creator${NC}"
 echo "=================================================="
+echo ""
+
+# Check Node.js version first
+echo -e "${YELLOW}🔍 Checking Node.js version requirements...${NC}"
+check_node_version
+echo ""
 
 # Function to validate project name
 validate_project_name() {
