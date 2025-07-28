@@ -22,10 +22,10 @@ describe('SignupForm', () => {
   it('should render signup form with all fields', () => {
     render(<SignupForm />)
 
-    expect(screen.getByPlaceholderText('Name (optional)')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Password')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sign up/i })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter your full name')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter your password (min 8 characters)')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument()
     expect(screen.getByText(/already have an account/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /sign in/i })).toBeInTheDocument()
   })
@@ -37,12 +37,12 @@ describe('SignupForm', () => {
     render(<SignupForm />)
 
     // Fill in the form
-    await user.type(screen.getByPlaceholderText('Name (optional)'), 'Test User')
-    await user.type(screen.getByPlaceholderText('Email'), 'newuser@example.com')
-    await user.type(screen.getByPlaceholderText('Password'), 'securepassword123')
+    await user.type(screen.getByPlaceholderText('Enter your full name'), 'Test User')
+    await user.type(screen.getByPlaceholderText('Enter your email'), 'newuser@example.com')
+    await user.type(screen.getByPlaceholderText('Enter your password (min 8 characters)'), 'securepassword123')
 
     // Submit the form
-    await user.click(screen.getByRole('button', { name: /sign up/i }))
+    await user.click(screen.getByRole('button', { name: /create account/i }))
 
     // Wait for the action to be called
     await waitFor(() => {
@@ -64,9 +64,9 @@ describe('SignupForm', () => {
     render(<SignupForm />)
 
     // Fill and submit form
-    await user.type(screen.getByPlaceholderText('Email'), 'existing@example.com')
-    await user.type(screen.getByPlaceholderText('Password'), 'password123')
-    await user.click(screen.getByRole('button', { name: /sign up/i }))
+    await user.type(screen.getByPlaceholderText('Enter your email'), 'existing@example.com')
+    await user.type(screen.getByPlaceholderText('Enter your password (min 8 characters)'), 'password123')
+    await user.click(screen.getByRole('button', { name: /create account/i }))
 
     // Wait for error message
     await waitFor(() => {
@@ -81,11 +81,11 @@ describe('SignupForm', () => {
     render(<SignupForm />)
 
     // Fill only required fields
-    await user.type(screen.getByPlaceholderText('Email'), 'noname@example.com')
-    await user.type(screen.getByPlaceholderText('Password'), 'password123')
+    await user.type(screen.getByPlaceholderText('Enter your email'), 'noname@example.com')
+    await user.type(screen.getByPlaceholderText('Enter your password (min 8 characters)'), 'password123')
 
     // Submit the form
-    await user.click(screen.getByRole('button', { name: /sign up/i }))
+    await user.click(screen.getByRole('button', { name: /create account/i }))
 
     // Wait for the action to be called
     await waitFor(() => {
@@ -140,7 +140,7 @@ describe('SignupForm', () => {
     // Fill form with short password
     await user.type(screen.getByPlaceholderText('Email'), 'test@example.com')
     await user.type(screen.getByPlaceholderText('Password'), 'short')
-    await user.click(screen.getByRole('button', { name: /sign up/i }))
+    await user.click(screen.getByRole('button', { name: /create account/i }))
 
     // Wait for error message
     await waitFor(() => {

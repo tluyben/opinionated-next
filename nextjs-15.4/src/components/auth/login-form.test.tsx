@@ -22,8 +22,8 @@ describe('LoginForm', () => {
   it('should render login form with all fields', () => {
     render(<LoginForm />)
 
-    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Password')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Enter your password')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
     expect(screen.getByText(/don't have an account/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /sign up/i })).toBeInTheDocument()
@@ -38,8 +38,8 @@ describe('LoginForm', () => {
     fireEvent.click(submitButton)
 
     // HTML5 validation should prevent submission
-    const emailInput = screen.getByPlaceholderText('Email') as HTMLInputElement
-    const passwordInput = screen.getByPlaceholderText('Password') as HTMLInputElement
+    const emailInput = screen.getByPlaceholderText('Enter your email') as HTMLInputElement
+    const passwordInput = screen.getByPlaceholderText('Enter your password') as HTMLInputElement
 
     expect(emailInput.validity.valueMissing).toBe(true)
     expect(passwordInput.validity.valueMissing).toBe(true)
@@ -51,8 +51,8 @@ describe('LoginForm', () => {
 
     render(<LoginForm />)
 
-    const emailInput = screen.getByPlaceholderText('Email')
-    const passwordInput = screen.getByPlaceholderText('Password')
+    const emailInput = screen.getByPlaceholderText('Enter your email')
+    const passwordInput = screen.getByPlaceholderText('Enter your password')
     const submitButton = screen.getByRole('button', { name: /sign in/i })
 
     // Fill in the form
@@ -81,8 +81,8 @@ describe('LoginForm', () => {
     render(<LoginForm />)
 
     // Fill and submit form
-    await user.type(screen.getByPlaceholderText('Email'), 'test@example.com')
-    await user.type(screen.getByPlaceholderText('Password'), 'wrongpassword')
+    await user.type(screen.getByPlaceholderText('Enter your email'), 'test@example.com')
+    await user.type(screen.getByPlaceholderText('Enter your password'), 'wrongpassword')
     await user.click(screen.getByRole('button', { name: /sign in/i }))
 
     // Wait for error message
@@ -110,7 +110,7 @@ describe('LoginForm', () => {
   it('should validate email format', async () => {
     render(<LoginForm />)
 
-    const emailInput = screen.getByPlaceholderText('Email') as HTMLInputElement
+    const emailInput = screen.getByPlaceholderText('Enter your email') as HTMLInputElement
     
     // Invalid email
     fireEvent.change(emailInput, { target: { value: 'invalid-email' } })
@@ -124,8 +124,8 @@ describe('LoginForm', () => {
   it('should have correct input types', () => {
     render(<LoginForm />)
 
-    const emailInput = screen.getByPlaceholderText('Email') as HTMLInputElement
-    const passwordInput = screen.getByPlaceholderText('Password') as HTMLInputElement
+    const emailInput = screen.getByPlaceholderText('Enter your email') as HTMLInputElement
+    const passwordInput = screen.getByPlaceholderText('Enter your password') as HTMLInputElement
 
     expect(emailInput.type).toBe('email')
     expect(passwordInput.type).toBe('password')

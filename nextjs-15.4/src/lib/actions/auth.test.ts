@@ -23,22 +23,7 @@ vi.mock('@/lib/auth/session', () => ({
   deleteSession: vi.fn(),
 }))
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          get: vi.fn(),
-        })),
-      })),
-    })),
-    insert: vi.fn(() => ({
-      values: vi.fn(() => ({
-        returning: vi.fn(),
-      })),
-    })),
-  },
-}))
+// Database is mocked globally in vitest.setup.ts
 
 describe('Auth Server Actions', () => {
   beforeEach(() => {

@@ -19,26 +19,7 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }))
 
-// Mock database
-vi.mock('@/lib/db', () => ({
-  db: {
-    insert: vi.fn(() => ({ values: vi.fn() })),
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        leftJoin: vi.fn(() => ({
-          where: vi.fn(() => ({
-            get: vi.fn(),
-          })),
-        })),
-      })),
-    })),
-    delete: vi.fn(() => ({
-      where: vi.fn(() => ({
-        run: vi.fn(),
-      })),
-    })),
-  },
-}))
+// Database is mocked globally in vitest.setup.ts
 
 describe('Session Management', () => {
   const mockCookies = {

@@ -44,6 +44,10 @@ vi.mock('next/headers', () => ({
 process.env.NEXTAUTH_SECRET = 'test-secret'
 process.env.NEXTAUTH_URL = 'http://localhost:3000'
 process.env.DATABASE_URL = 'file:./test.db'
+process.env.NODE_ENV = 'test'
+
+// Use manual mock for database module to avoid hoisting issues
+vi.mock('@/lib/db')
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

@@ -10,25 +10,7 @@ vi.mock('@/lib/auth/session', () => ({
   getSession: vi.fn(),
 }))
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    insert: vi.fn(() => ({
-      values: vi.fn(),
-    })),
-    delete: vi.fn(() => ({
-      where: vi.fn(),
-    })),
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          orderBy: vi.fn(() => ({
-            all: vi.fn(),
-          })),
-        })),
-      })),
-    })),
-  },
-}))
+// Database is mocked globally in vitest.setup.ts
 
 // Mock crypto
 vi.mock('crypto', () => ({

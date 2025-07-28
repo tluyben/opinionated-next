@@ -11,24 +11,29 @@ vi.mock('bcryptjs', () => ({
   },
 }))
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          get: vi.fn(),
-        })),
-      })),
-    })),
-    insert: vi.fn(() => ({
-      values: vi.fn(),
-    })),
-  },
-}))
-
-vi.mock('@/lib/db/schema', () => ({
-  users: {},
-}))
+// Mock database specifically for this test
+vi.mock('@/lib/db', () => {
+  const createChain = () => {
+    const chain = {
+      from: vi.fn(() => chain),
+      where: vi.fn(() => chain),
+      limit: vi.fn(() => chain),
+      get: vi.fn(() => Promise.resolve(null)),
+      all: vi.fn(() => Promise.resolve([])),
+      values: vi.fn(() => chain),
+      run: vi.fn(() => Promise.resolve({})),
+    }
+    return chain
+  }
+  
+  return {
+    db: {
+      select: vi.fn(() => createChain()),
+      insert: vi.fn(() => createChain()),
+    },
+    users: {},
+  }
+})
 
 // Mock console.log to capture output
 const originalConsoleLog = console.log
