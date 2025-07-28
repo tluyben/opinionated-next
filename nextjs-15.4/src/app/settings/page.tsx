@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Key, Trash2, Copy, Shield, TrendingUp, Clock, AlertTriangle, MoreHorizontal, Link } from 'lucide-react';
-import { deleteApiKeyAction, getUserApiKeys, getApiKeyStats } from '@/lib/actions/apikeys';
+import { Key, Trash2, Copy, Shield, TrendingUp, Clock, AlertTriangle, Link } from 'lucide-react';
+import { getUserApiKeys, getApiKeyStats } from '@/lib/actions/apikeys';
 import { ApiKeyForm } from '@/components/settings/api-key-form';
+import { DeleteApiKeyDialog } from '@/components/settings/delete-api-key-dialog';
 
 export default async function SettingsPage() {
   const [apiKeys, stats] = await Promise.all([
@@ -197,12 +198,7 @@ export default async function SettingsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-1">
-                          <form action={deleteApiKeyAction} className="inline">
-                            <input type="hidden" name="keyId" value={key.id} />
-                            <Button type="submit" variant="ghost" size="sm" className="h-6 w-6 p-0">
-                              <MoreHorizontal className="h-3 w-3" />
-                            </Button>
-                          </form>
+                          <DeleteApiKeyDialog keyId={key.id} keyName={key.name} />
                         </div>
                       </TableCell>
                     </TableRow>

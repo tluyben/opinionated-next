@@ -103,6 +103,39 @@ export default async function Page({
 - **searchParams** also needs to be awaited: `const searchParams = await searchParams`
 - This is a breaking change in Next.js 15+ - old code will error!
 
+#### ⚡ DATABASE TRANSACTIONS WITH BETTER-SQLITE3 (SYNCHRONOUS ONLY!)
+**🚨 CRITICAL: BETTER-SQLITE3 REQUIRES SYNCHRONOUS TRANSACTIONS - NO ASYNC/AWAIT!**
+
+**THE ERROR:** "Transaction function cannot return a promise" occurs because better-sqlite3 is a synchronous driver that does NOT support async transaction callbacks.
+
+```typescript
+// ❌ WRONG (ASYNC - WILL FAIL)
+await db.transaction(async (tx) => {
+  await tx.insert(table).values(data); // ❌ async/await not supported!
+  return { success: true };
+});
+
+// ✅ CORRECT (SYNCHRONOUS - WORKS)
+db.transaction((tx) => {
+  tx.insert(table).values(data).run(); // ✅ Synchronous with .run()
+  // No return needed in callback
+});
+```
+
+**🔥 MANDATORY PATTERNS FOR BETTER-SQLITE3:**
+- ✅ Use `db.transaction((tx) => {})` (NO async, NO await keyword)
+- ✅ End all operations with `.run()` for insert/update/delete
+- ✅ Use `.all()` or `.get()` for select operations
+- ✅ NO async/await inside the transaction callback
+- ✅ NO return statements from transaction callback
+- ✅ Return success/error AFTER the transaction completes
+
+**🚨 YOU ALWAYS FORGET THIS! EVERYWHERE IN THE PROJECT WHERE TRANSACTIONS ARE USED!**
+- **NEVER** use async/await inside `db.transaction()` callbacks
+- **ALWAYS** use `.run()`, `.get()`, or `.all()` for synchronous operations
+- **Transaction callbacks CANNOT return promises** - this will throw an error
+- **Return results AFTER the transaction block completes**
+
 ### 🚨 CRITICAL: Documentation Requirements
 - ✅ **UPDATE README.md** - MANDATORY for any feature changes, new environment variables, or functionality updates
 - ✅ **UPDATE env.example** - MANDATORY when introducing new environment variables with proper documentation

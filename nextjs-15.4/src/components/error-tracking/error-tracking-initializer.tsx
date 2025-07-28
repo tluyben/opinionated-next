@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { initializeGlobalErrorHandling } from '@/lib/error-tracking/global-handler';
+import { initializeEnhancedErrorTracking } from '@/lib/error-tracking/enhanced-client-handler';
 
 export function ErrorTrackingInitializer() {
   useEffect(() => {
-    initializeGlobalErrorHandling();
+    initializeEnhancedErrorTracking();
   }, []);
 
   return null;
