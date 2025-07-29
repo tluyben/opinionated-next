@@ -9,10 +9,10 @@ test.describe('Landing Page', () => {
     
     // Check hero section
     await expect(page.getByText(/Build Your Next/i)).toBeVisible()
-    await expect(page.getByText(/SaaS Application/i)).toBeVisible()
+    await expect(page.getByText('SaaS Application', { exact: true })).toBeVisible()
     
     // Check header navigation
-    await expect(page.getByText('NextJS Starter')).toBeVisible()
+    await expect(page.locator('header').getByRole('heading', { name: 'NextJS Starter' })).toBeVisible()
     
     // Check navigation buttons in header
     const headerSignIn = page.locator('header').getByRole('link', { name: /sign in/i })
@@ -27,16 +27,16 @@ test.describe('Landing Page', () => {
     await expect(heroGetStarted).toBeVisible()
     
     // Check features section
-    await expect(page.getByText('Everything You Need')).toBeVisible()
-    await expect(page.getByText('Lightning Fast')).toBeVisible()
-    await expect(page.getByText('Secure by Default')).toBeVisible()
-    await expect(page.getByText('Mobile First')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Everything You Need' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Lightning Fast' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Secure by Default' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Mobile First' })).toBeVisible()
     
     // Check pricing section
-    await expect(page.getByText('Simple Pricing')).toBeVisible()
-    await expect(page.getByText('Starter')).toBeVisible()
-    await expect(page.getByText('Pro')).toBeVisible()
-    await expect(page.getByText('Enterprise')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Simple Pricing' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Starter', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Pro' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Enterprise' })).toBeVisible()
   })
 
   test('should navigate to login from header', async ({ page }) => {

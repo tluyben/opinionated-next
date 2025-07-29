@@ -1,53 +1,33 @@
 import { test, expect } from '@playwright/test'
+import { createTestAdmin, createTestUser, cleanupTestUsers, loginUser } from './helpers/test-db'
 
-// Helper to create admin user (if it doesn't exist) and login
+// Helper to create and login as a real admin user
 async function loginAsAdmin(page: any) {
-  // First try to login with default admin credentials
-  await page.goto('/login')
-  
-  // Try default admin credentials first
-  await page.getByPlaceholder('Enter your email').fill('admin@example.com')
-  await page.getByPlaceholder('Enter your password').fill('admin123')
-  await page.getByRole('button', { name: /sign in/i }).click()
-  
-  // Wait for response
-  await page.waitForTimeout(2000)
-  
-  // If login failed, create admin account
-  if (page.url().includes('/login')) {
-    // Go to signup to create admin account
-    await page.goto('/signup')
-    await page.getByPlaceholder('Enter your full name').fill('Admin User')
-    await page.getByPlaceholder('Enter your email').fill('admin@example.com')
-    await page.getByPlaceholder('Enter your password (min 8 characters)').fill('admin123')
-    await page.getByRole('button', { name: /create account/i }).click()
-    
-    // Wait for redirect
-    await page.waitForTimeout(2000)
-    
-    // If redirected to login, sign in
-    if (page.url().includes('/login')) {
-      await page.getByPlaceholder('Enter your email').fill('admin@example.com')
-      await page.getByPlaceholder('Enter your password').fill('admin123')
-      await page.getByRole('button', { name: /sign in/i }).click()
-    }
-  }
-  
-  // Should now be logged in - check if we're on dashboard
-  await page.waitForURL(url => url.pathname.includes('/dashboard') || url.pathname === '/')
+  const adminUser = await createTestAdmin()
+  await loginUser(page, adminUser)
+  return adminUser
 }
 
 test.describe('Admin Dashboard', () => {
+  const createdUserIds: string[] = []
+
+  test.afterEach(async () => {
+    // Cleanup any users created during this test
+    await cleanupTestUsers(createdUserIds)
+    createdUserIds.length = 0
+  })
+
   test('should access admin areas as admin user', async ({ page }) => {
-    await loginAsAdmin(page)
+    const adminUser = await loginAsAdmin(page)
+    createdUserIds.push(adminUser.id)
     
     // Try to access admin issues page
     await page.goto('/dashboard/admin/issues')
     
     // If admin access works, should see issues page
-    if (await page.getByText(/issues/i).isVisible()) {
-      await expect(page.getByText(/issues/i)).toBeVisible()
-      await expect(page.getByText(/Monitor and manage/i)).toBeVisible()
+    if (await page.getByRole('heading', { name: 'Issues', exact: true }).isVisible()) {
+      await expect(page.getByRole('heading', { name: 'Issues', exact: true })).toBeVisible()
+      await expect(page.getByText('Monitor and manage application errors and issues')).toBeVisible()
     } else {
       // If redirected, it means user doesn't have admin role
       // This is expected for non-admin users
@@ -56,14 +36,16 @@ test.describe('Admin Dashboard', () => {
   })
 
   test('should display issues dashboard', async ({ page }) => {
-    await loginAsAdmin(page)
+    const adminUser = await loginAsAdmin(page)
+    createdUserIds.push(adminUser.id)
     await page.goto('/dashboard/admin/issues')
     
     // Check if admin area is accessible
-    if (await page.getByText(/issues/i).isVisible()) {
+    if (await page.getByRole('heading', { name: 'Issues', exact: true }).isVisible()) {
       // Check issue stats cards
-      const statsCards = page.locator('[role="main"]').getByText(/open|resolved|error|warning/i)
-      await expect(statsCards.first()).toBeVisible()
+      const totalIssuesCard = page.getByRole('heading', { name: 'Total Issues' })
+      const openIssuesCard = page.getByRole('heading', { name: 'Open Issues' })
+      await expect(totalIssuesCard.or(openIssuesCard)).toBeVisible()
       
       // Check issues table or empty state
       const issuesTable = page.getByRole('table')
@@ -236,24 +218,34 @@ test.describe('Admin Access Control', () => {
 })
 
 test.describe('Database Admin Page', () => {
+  const createdUserIds: string[] = []
+
+  test.afterEach(async () => {
+    // Cleanup any users created during this test
+    await cleanupTestUsers(createdUserIds)
+    createdUserIds.length = 0
+  })
+
   test('should access database page as admin', async ({ page }) => {
-    await loginAsAdmin(page)
+    const adminUser = await loginAsAdmin(page)
+    createdUserIds.push(adminUser.id)
     await page.goto('/database')
     
     // Database page should show tables
-    if (await page.getByText(/database/i).isVisible()) {
-      await expect(page.getByText(/database/i)).toBeVisible()
+    if (await page.getByRole('heading', { name: 'Database Admin' }).isVisible()) {
+      await expect(page.getByRole('heading', { name: 'Database Admin' })).toBeVisible()
       
       // Should show database tables
-      await expect(page.getByText(/users|sessions|issues/i)).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Database Tables' })).toBeVisible()
     }
   })
 
   test('should browse database tables', async ({ page }) => {
-    await loginAsAdmin(page)
+    const adminUser = await loginAsAdmin(page)
+    createdUserIds.push(adminUser.id)
     await page.goto('/database')
     
-    if (await page.getByText(/database/i).isVisible()) {
+    if (await page.getByRole('heading', { name: 'Database Admin' }).isVisible()) {
       // Click on a table link
       const tableLink = page.getByRole('link').filter({ hasText: /users|issues/i }).first()
       
@@ -267,22 +259,12 @@ test.describe('Database Admin Page', () => {
   })
 
   test('should restrict database access to admin only', async ({ page }) => {
-    // Try to access as non-admin user
-    await page.goto('/signup')
-    await page.getByPlaceholder('Enter your full name').fill('Non Admin')
-    await page.getByPlaceholder('Enter your email').fill('nonadmin@example.com')
-    await page.getByPlaceholder('Enter your password (min 8 characters)').fill('user12345')
-    await page.getByRole('button', { name: /create account/i }).click()
+    // Create and login as a regular user (not admin)
+    const regularUser = await createTestUser()
+    createdUserIds.push(regularUser.id)
+    await loginUser(page, regularUser)
     
-    await page.waitForTimeout(2000)
-    
-    if (page.url().includes('/login')) {
-      await page.getByPlaceholder('Enter your email').fill('nonadmin@example.com')
-      await page.getByPlaceholder('Enter your password').fill('user12345')
-      await page.getByRole('button', { name: /sign in/i }).click()
-    }
-    
-    // Try to access database page
+    // Try to access database page as regular user
     await page.goto('/database')
     
     // Should be redirected away or show access denied

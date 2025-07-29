@@ -1,42 +1,32 @@
 import { test, expect } from '@playwright/test'
-
-// Helper to create a test user and login
-async function loginAsUser(page: any, email = 'testuser@example.com', password = 'testpass123') {
-  await page.goto('/signup')
-  
-  // Create user account
-  await page.getByPlaceholder('Enter your full name').fill('Test User')
-  await page.getByPlaceholder('Enter your email').fill(email)
-  await page.getByPlaceholder('Enter your password (min 8 characters)').fill(password)
-  await page.getByRole('button', { name: /create account/i }).click()
-  
-  // Wait for redirect to dashboard or login
-  await page.waitForURL(url => url.pathname === '/dashboard' || url.pathname === '/login')
-  
-  // If redirected to login, sign in
-  if (page.url().includes('/login')) {
-    await page.getByPlaceholder('Enter your email').fill(email)
-    await page.getByPlaceholder('Enter your password').fill(password)
-    await page.getByRole('button', { name: /sign in/i }).click()
-    await page.waitForURL('/dashboard')
-  }
-}
+import { createTestUser, createTestAdmin, cleanupTestUsers, loginUser } from './helpers/test-db'
 
 test.describe('Dashboard', () => {
+  const createdUserIds: string[] = []
+
+  test.afterEach(async () => {
+    // Cleanup any users created during this test
+    await cleanupTestUsers(createdUserIds)
+    createdUserIds.length = 0
+  })
+
   test('should redirect unauthenticated users to login', async ({ page }) => {
     await page.goto('/dashboard')
     await expect(page).toHaveURL('/login')
   })
 
   test('should display dashboard after login', async ({ page }) => {
-    await loginAsUser(page)
+    // Create and login with a test user
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     
     // Check we're on dashboard
     await expect(page).toHaveURL('/dashboard')
     await expect(page).toHaveTitle(/Opinionated Next.js Starter/)
     
     // Check dashboard layout elements
-    await expect(page.getByText('Dashboard')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     
     // Check sidebar navigation
     await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible()
@@ -45,7 +35,10 @@ test.describe('Dashboard', () => {
   })
 
   test('should navigate between dashboard sections', async ({ page }) => {
-    await loginAsUser(page)
+    // Create and login with a test user
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     
     // Navigate to profile
     await page.getByRole('link', { name: /profile/i }).click()
@@ -63,19 +56,26 @@ test.describe('Dashboard', () => {
   test('should display mobile responsive sidebar', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 })
-    await loginAsUser(page)
+    
+    // Create and login with a test user
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     
     // Check that mobile navigation is working
     // On mobile, sidebar should be collapsible
-    await expect(page.getByText('Dashboard')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
   })
 
   test('should allow user logout', async ({ page }) => {
-    await loginAsUser(page)
+    // Create and login with a test user
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     
     // Find and click logout button (might be in user menu)
     // This depends on the actual implementation
-    await expect(page.getByText('Dashboard')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
     
     // Look for logout functionality
     const logoutButton = page.getByRole('button', { name: /logout/i }).or(
@@ -90,12 +90,21 @@ test.describe('Dashboard', () => {
 })
 
 test.describe('Profile Page', () => {
+  const createdUserIds: string[] = []
+
+  test.afterEach(async () => {
+    await cleanupTestUsers(createdUserIds)
+    createdUserIds.length = 0
+  })
+
   test('should display and update profile information', async ({ page }) => {
-    await loginAsUser(page)
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     await page.goto('/profile')
     
     // Check profile page elements
-    await expect(page.getByText(/profile/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /profile/i })).toBeVisible()
     
     // Should have form fields for user information
     const nameInput = page.getByPlaceholder(/name/i).or(page.getByLabel(/name/i))
@@ -110,7 +119,9 @@ test.describe('Profile Page', () => {
   })
 
   test('should handle avatar upload', async ({ page }) => {
-    await loginAsUser(page)
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     await page.goto('/profile')
     
     // Look for avatar upload functionality
@@ -124,20 +135,31 @@ test.describe('Profile Page', () => {
 })
 
 test.describe('Settings Page', () => {
+  const createdUserIds: string[] = []
+
+  test.afterEach(async () => {
+    await cleanupTestUsers(createdUserIds)
+    createdUserIds.length = 0
+  })
+
   test('should display settings page', async ({ page }) => {
-    await loginAsUser(page)
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     await page.goto('/settings')
     
     // Check settings page elements
-    await expect(page.getByText(/API Keys/i)).toBeVisible()
-    await expect(page.getByText(/Manage your API keys/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'API Keys', exact: true })).toBeVisible()
+    await expect(page.getByText(/Manage your API keys for secure access/i)).toBeVisible()
     
     // Should show API key creation button
     await expect(page.getByRole('button', { name: /create api key/i })).toBeVisible()
   })
 
   test('should create new API key', async ({ page }) => {
-    await loginAsUser(page)
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     await page.goto('/settings')
     
     // Click create API key button
@@ -166,7 +188,9 @@ test.describe('Settings Page', () => {
   })
 
   test('should delete API key with confirmation', async ({ page }) => {
-    await loginAsUser(page)
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     await page.goto('/settings')
     
     // First create an API key
@@ -194,34 +218,54 @@ test.describe('Settings Page', () => {
 })
 
 test.describe('Demo Pages', () => {
+  const createdUserIds: string[] = []
+
+  test.afterEach(async () => {
+    await cleanupTestUsers(createdUserIds)
+    createdUserIds.length = 0
+  })
+
   test('should access LLM demo page', async ({ page }) => {
-    await loginAsUser(page)
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     
     // Try to navigate to LLM demo
     await page.goto('/demo/llm')
     
     // Should show LLM demo page
-    if (await page.getByText(/LLM/i).isVisible()) {
-      await expect(page.getByText(/LLM/i)).toBeVisible()
+    if (await page.getByRole('heading', { name: 'LLM Chat Demo' }).isVisible()) {
+      await expect(page.getByRole('heading', { name: 'LLM Chat Demo' })).toBeVisible()
     }
   })
 
   test('should access payments demo page', async ({ page }) => {
-    await loginAsUser(page)
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     
     // Try to navigate to payments demo
     await page.goto('/demo/payments')
     
     // Should show payments demo page
-    if (await page.getByText(/payment/i).isVisible()) {
-      await expect(page.getByText(/payment/i)).toBeVisible()
+    if (await page.getByRole('heading', { name: /payment/i }).isVisible()) {
+      await expect(page.getByRole('heading', { name: /payment/i })).toBeVisible()
     }
   })
 })
 
 test.describe('Error Tracking Test Page', () => {
+  const createdUserIds: string[] = []
+
+  test.afterEach(async () => {
+    await cleanupTestUsers(createdUserIds)
+    createdUserIds.length = 0
+  })
+
   test('should access error tracking test page', async ({ page }) => {
-    await loginAsUser(page)
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     await page.goto('/test-error-tracking')
     
     // Check error tracking test page
@@ -234,14 +278,19 @@ test.describe('Error Tracking Test Page', () => {
   })
 
   test('should trigger and handle React errors', async ({ page }) => {
-    await loginAsUser(page)
+    const testUser = await createTestUser()
+    createdUserIds.push(testUser.id)
+    await loginUser(page, testUser)
     await page.goto('/test-error-tracking')
     
     // Click React error button
     await page.getByRole('button', { name: /trigger react error/i }).click()
     
-    // Should show error boundary fallback
-    // Note: This might be caught by the error boundary
-    await expect(page.getByText('Error Tracking Test')).toBeVisible()
+    // Wait a moment for error handling
+    await page.waitForTimeout(1000)
+    
+    // After error, the error boundary should show an error message
+    await expect(page.getByRole('heading', { name: 'Something went wrong' })).toBeVisible()
+    await expect(page.getByText('An unexpected error occurred')).toBeVisible()
   })
 })

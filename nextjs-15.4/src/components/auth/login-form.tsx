@@ -8,7 +8,7 @@ import { OAuthButtons } from './oauth-buttons';
 import Link from 'next/link';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useState } from 'react';
 
 interface LoginFormProps {
   error?: string;
@@ -24,16 +24,23 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm({ error }: LoginFormProps) {
+export function LoginForm({ error: urlError }: LoginFormProps) {
   const router = useRouter();
+  const [actionError, setActionError] = useState<string>('');
 
   const handleLogin = async (formData: FormData) => {
+    setActionError(''); // Clear previous errors
     const result = await loginAction(formData);
     if (result?.success) {
       console.log('🎉 [CLIENT] Login successful, redirecting to dashboard');
       router.push('/dashboard');
+    } else if (result?.error) {
+      setActionError(result.error);
     }
   };
+
+  // Use action error if available, otherwise fall back to URL error
+  const displayError = actionError || urlError;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -44,9 +51,9 @@ export function LoginForm({ error }: LoginFormProps) {
         </CardHeader>
         <CardContent>
           <form action={handleLogin} className="space-y-4">
-            {error && (
+            {displayError && (
               <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-md">
-                {error}
+                {displayError}
               </div>
             )}
             <div className="space-y-2">

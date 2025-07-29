@@ -15,25 +15,25 @@ export async function loginAction(formData: FormData) {
   const password = formData.get('password') as string;
 
   if (!email || !password) {
-    redirect('/login?error=Email and password are required');
+    return { error: 'Email and password are required' };
   }
 
   try {
     const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
     if (user.length === 0) {
-      redirect('/login?error=Invalid credentials');
+      return { error: 'Invalid credentials' };
     }
 
     const isValid = await bcrypt.compare(password, user[0].passwordHash || '');
 
     if (!isValid) {
-      redirect('/login?error=Invalid credentials');
+      return { error: 'Invalid credentials' };
     }
 
     // Check if email is verified (only for email/password users, not OAuth)
     if (user[0].passwordHash && !user[0].emailVerified) {
-      redirect('/login?error=Please verify your email address before logging in. Check your email for the verification link.');
+      return { error: 'Please verify your email address before logging in. Check your email for the verification link.' };
     }
 
     console.log('🔐 [LOGIN] Creating session for user:', user[0].id);
@@ -43,7 +43,7 @@ export async function loginAction(formData: FormData) {
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     await handleServerError(err, { action: 'loginAction', tags: ['auth'] });
-    redirect('/login?error=Something went wrong');
+    return { error: 'Something went wrong' };
   }
   
   console.log('🚀 [LOGIN] Login successful, returning success');
