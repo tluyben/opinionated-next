@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { db, users, passwordResetTokens, emailVerificationTokens } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
@@ -14,35 +15,40 @@ export async function loginAction(formData: FormData) {
   const password = formData.get('password') as string;
 
   if (!email || !password) {
-    return { error: 'Email and password are required' };
+    redirect('/login?error=Email and password are required');
   }
 
   try {
     const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
     if (user.length === 0) {
-      return { error: 'Invalid credentials' };
+      redirect('/login?error=Invalid credentials');
     }
 
     const isValid = await bcrypt.compare(password, user[0].passwordHash || '');
 
     if (!isValid) {
-      return { error: 'Invalid credentials' };
+      redirect('/login?error=Invalid credentials');
     }
 
     // Check if email is verified (only for email/password users, not OAuth)
     if (user[0].passwordHash && !user[0].emailVerified) {
-      return { error: 'Please verify your email address before logging in. Check your email for the verification link.' };
+      redirect('/login?error=Please verify your email address before logging in. Check your email for the verification link.');
     }
 
+    console.log('🔐 [LOGIN] Creating session for user:', user[0].id);
     await createSession(user[0].id);
+    console.log('✅ [LOGIN] Session created successfully');
+    console.log('🔄 [LOGIN] About to redirect to /dashboard');
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     await handleServerError(err, { action: 'loginAction', tags: ['auth'] });
-    return { error: 'Something went wrong' };
+    redirect('/login?error=Something went wrong');
   }
   
-  redirect('/dashboard');
+  console.log('🚀 [LOGIN] Login successful, returning success');
+  revalidatePath('/', 'layout');
+  return { success: true };
 }
 
 export async function signupAction(formData: FormData) {
@@ -187,17 +193,25 @@ If you didn't create this account, please ignore this email.
 }
 
 export async function logoutAction() {
+  console.log('🚪 [LOGOUT] Deleting session');
   await deleteSession();
-  redirect('/');
+  console.log('🚪 [LOGOUT] Session deleted, returning success');
+  revalidatePath('/', 'layout');
+  return { success: true };
 }
 
-export async function verifyEmailAction(token: string) {
+// Verify email token without creating session (safe to call from server components)
+export async function verifyEmailTokenOnly(token: string) {
   if (!token) {
+    console.error('❌ [VERIFY EMAIL] No token provided');
     return { error: 'Verification token is required' };
   }
 
+  console.log('📧 [VERIFY EMAIL] Starting verification process for token:', token.substring(0, 8) + '...');
+
   try {
     // Find valid verification token
+    console.log('📧 [VERIFY EMAIL] Searching for token in database...');
     const verificationToken = await db
       .select()
       .from(emailVerificationTokens)
@@ -209,16 +223,48 @@ export async function verifyEmailAction(token: string) {
       )
       .limit(1);
 
+    console.log('📧 [VERIFY EMAIL] Token search result:', {
+      found: verificationToken.length > 0,
+      tokenCount: verificationToken.length
+    });
+
     if (verificationToken.length === 0) {
+      // Debug: Let's check if the token exists but is used
+      const usedToken = await db
+        .select()
+        .from(emailVerificationTokens)
+        .where(eq(emailVerificationTokens.token, token))
+        .limit(1);
+      
+      console.log('📧 [VERIFY EMAIL] Checking for used token:', {
+        exists: usedToken.length > 0,
+        tokenData: usedToken[0] || null
+      });
+
       return { error: 'Invalid or expired verification token' };
     }
 
     const tokenData = verificationToken[0];
+    console.log('📧 [VERIFY EMAIL] Token found:', {
+      id: tokenData.id,
+      userId: tokenData.userId,
+      email: tokenData.email,
+      expiresAt: tokenData.expiresAt.toISOString(),
+      used: tokenData.used,
+      isExpired: tokenData.expiresAt < new Date()
+    });
 
-    // Check if token is expired
-    if (tokenData.expiresAt < new Date()) {
+    // Check if token is expired (tokenData.expiresAt is a Date object from Drizzle timestamp mode)
+    const now = new Date();
+    if (tokenData.expiresAt < now) {
+      console.error('❌ [VERIFY EMAIL] Token has expired:', {
+        expiresAt: tokenData.expiresAt.toISOString(),
+        now: now.toISOString()
+      });
       return { error: 'Verification token has expired' };
     }
+
+    console.log('📧 [VERIFY EMAIL] Token is valid, updating user...');
 
     // Update user as verified
     await db
@@ -229,19 +275,91 @@ export async function verifyEmailAction(token: string) {
       })
       .where(eq(users.id, tokenData.userId));
 
+    console.log('📧 [VERIFY EMAIL] User updated, marking token as used...');
+
     // Mark token as used
     await db
       .update(emailVerificationTokens)
       .set({ used: true })
       .where(eq(emailVerificationTokens.id, tokenData.id));
 
-    // Create session for the verified user
-    await createSession(tokenData.userId);
+    console.log('✅ [VERIFY EMAIL] Verification completed successfully (without session)!');
+    return { success: true, userId: tokenData.userId };
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error('❌ [VERIFY EMAIL] Error during verification:', err.message);
+    console.error('Stack trace:', err.stack);
+    await handleServerError(err, { action: 'verifyEmailTokenOnly', tags: ['auth', 'email-verification'] });
+    return { error: 'Something went wrong' };
+  }
+}
 
+// Server action to complete verification with session creation
+export async function verifyEmailAction(formData: FormData) {
+  const token = formData.get('token') as string;
+  
+  if (!token) {
+    return { error: 'Verification token is required' };
+  }
+
+  try {
+    // Verify token without creating session
+    const result = await verifyEmailTokenOnly(token);
+    
+    if (!result.success) {
+      return result;
+    }
+
+    console.log('📧 [VERIFY EMAIL] Creating session for user:', result.userId);
+
+    // Create session for the verified user (this can modify cookies in server action)
+    await createSession(result.userId!);
+
+    console.log('✅ [VERIFY EMAIL] Session created successfully!');
     return { success: true };
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
+    console.error('❌ [VERIFY EMAIL] Error during verification:', err.message);
     await handleServerError(err, { action: 'verifyEmailAction', tags: ['auth', 'email-verification'] });
+    return { error: 'Something went wrong' };
+  }
+}
+
+// Server action to create session for already verified user (no token verification)
+export async function createSessionFromEmailAction(formData: FormData) {
+  const userId = formData.get('userId') as string;
+  
+  if (!userId) {
+    return { error: 'User ID is required' };
+  }
+
+  try {
+    console.log('📧 [CREATE SESSION] Creating session for verified user:', userId);
+
+    // Verify user exists and is verified
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (user.length === 0) {
+      return { error: 'User not found' };
+    }
+
+    if (!user[0].emailVerified) {
+      return { error: 'Email not verified' };
+    }
+
+    // Create session for the verified user
+    await createSession(userId);
+
+    console.log('✅ [CREATE SESSION] Session created successfully!');
+    return { success: true };
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error('❌ [CREATE SESSION] Error creating session:', err.message);
+    await handleServerError(err, { action: 'createSessionFromEmailAction', tags: ['auth'] });
     return { error: 'Something went wrong' };
   }
 }

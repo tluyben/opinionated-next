@@ -116,24 +116,32 @@ export async function requireAuth(): Promise<SessionUser> {
 }
 
 export async function requireVerifiedAuth(): Promise<SessionUser> {
+  console.log('🔍 [AUTH] requireVerifiedAuth called');
   const user = await getSession();
+  console.log('🔍 [AUTH] getSession result:', user ? 'User found' : 'No user', user ? { id: user.id, email: user.email, emailVerified: user.emailVerified } : null);
   if (!user) {
+    console.log('❌ [AUTH] No user found, throwing Authentication required');
     throw new Error('Authentication required');
   }
   
   // Skip email verification check for OAuth users (they don't have passwordHash)
   // and for admin users (they're created with emailVerified: true)
   const userRecord = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+  console.log('🔍 [AUTH] Database user record:', userRecord.length > 0 ? { emailVerified: userRecord[0].emailVerified, passwordHash: !!userRecord[0].passwordHash } : 'Not found');
   if (userRecord.length > 0) {
     const userData = userRecord[0];
     // Allow access if:
     // 1. Email is verified, OR
     // 2. User signed up via OAuth (no passwordHash), OR  
     // 3. User is admin (they're created as verified)
-    if (user.emailVerified || !userData.passwordHash || user.role === 'admin') {
+    const canAccess = user.emailVerified || !userData.passwordHash || user.role === 'admin';
+    console.log('🔍 [AUTH] Access check:', { emailVerified: user.emailVerified, hasPassword: !!userData.passwordHash, isAdmin: user.role === 'admin', canAccess });
+    if (canAccess) {
+      console.log('✅ [AUTH] Access granted');
       return user;
     }
   }
   
+  console.log('❌ [AUTH] Access denied - Email verification required');
   throw new Error('Email verification required');
 }

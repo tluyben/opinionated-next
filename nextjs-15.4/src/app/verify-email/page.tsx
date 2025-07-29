@@ -1,4 +1,4 @@
-import { verifyEmailAction } from '@/lib/actions/auth';
+import { verifyEmailTokenOnly } from '@/lib/actions/auth';
 import { redirect } from 'next/navigation';
 import { EmailVerificationForm } from '@/components/auth/email-verification-form';
 
@@ -27,12 +27,18 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
     );
   }
 
-  // Attempt to verify the email automatically
-  const result = await verifyEmailAction(token);
+  // Attempt to verify the email automatically (without creating session)
+  const result = await verifyEmailTokenOnly(token);
 
   if (result.success) {
-    // Redirect to dashboard on successful verification
-    redirect('/dashboard');
+    // Show success page with session creation form
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="mx-auto max-w-md space-y-6">
+          <EmailVerificationForm token={token} success={true} userId={result.userId} />
+        </div>
+      </div>
+    );
   }
 
   // Show error form if verification failed

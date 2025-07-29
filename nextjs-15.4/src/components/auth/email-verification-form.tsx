@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { verifyEmailAction } from '@/lib/actions/auth';
+import { verifyEmailAction, createSessionFromEmailAction } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,12 +12,14 @@ import { useRouter } from 'next/navigation';
 interface EmailVerificationFormProps {
   token: string;
   error?: string;
+  success?: boolean;
+  userId?: string;
 }
 
-export function EmailVerificationForm({ token, error: initialError }: EmailVerificationFormProps) {
+export function EmailVerificationForm({ token, error: initialError, success: initialSuccess, userId }: EmailVerificationFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(initialError);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState(initialSuccess || false);
   const router = useRouter();
 
   const handleRetry = async () => {
@@ -25,7 +27,11 @@ export function EmailVerificationForm({ token, error: initialError }: EmailVerif
     setError(undefined);
 
     try {
-      const result = await verifyEmailAction(token);
+      // Create form data for server action
+      const formData = new FormData();
+      formData.append('token', token);
+      
+      const result = await verifyEmailAction(formData);
       
       if (result.success) {
         setSuccess(true);
@@ -34,10 +40,41 @@ export function EmailVerificationForm({ token, error: initialError }: EmailVerif
           router.push('/dashboard');
         }, 2000);
       } else {
-        setError(result.error);
+        setError('error' in result ? result.error : 'Verification failed');
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCompleteVerification = async () => {
+    if (!userId) {
+      setError('User ID is missing. Please try again.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(undefined);
+
+    try {
+      // Create form data for server action with userId (no token verification needed)
+      const formData = new FormData();
+      formData.append('userId', userId);
+      
+      const result = await createSessionFromEmailAction(formData);
+      
+      if (result.success) {
+        // Redirect to dashboard
+        router.push('/dashboard');
+      } else {
+        setError('error' in result ? result.error : 'Session creation failed');
+        setSuccess(false);
+      }
+    } catch (err) {
+      setError('An unexpected error occurred. Please try again.');
+      setSuccess(false);
     } finally {
       setIsLoading(false);
     }
@@ -52,12 +89,23 @@ export function EmailVerificationForm({ token, error: initialError }: EmailVerif
           </div>
           <CardTitle className="text-2xl">Email Verified!</CardTitle>
           <CardDescription>
-            Your email address has been successfully verified. You'll be redirected to your dashboard shortly.
+            Your email address has been successfully verified. Click below to complete the sign-in process.
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-center">
-          <Button asChild className="w-full">
-            <Link href="/dashboard">Go to Dashboard</Link>
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <Button 
+            onClick={handleCompleteVerification} 
+            disabled={isLoading}
+            className="w-full"
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Complete Sign In
           </Button>
         </CardContent>
       </Card>

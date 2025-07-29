@@ -983,6 +983,46 @@ npm run build    # Full build when ready to test
 # http://localhost:3000/database?token=your-secret-dev-token-here&user=regular-user-id
 ```
 
+## 🚨 CRITICAL SERVER ACTION REDIRECT ISSUE (ALWAYS REMEMBER!)
+
+**🔴 NEVER USE `redirect()` IN SERVER ACTIONS CALLED FROM FORMS - IT CAUSES DUPLICATE REQUESTS!**
+
+When server actions use `redirect()`, the browser continues processing the original form POST even after the redirect happens, causing duplicate requests and redirect loops.
+
+```tsx
+// ❌ WRONG - Causes duplicate POST requests
+export async function loginAction(formData: FormData) {
+  // ... validation and session creation
+  redirect('/dashboard'); // This causes issues!
+}
+
+// ✅ CORRECT - Return success and redirect client-side  
+export async function loginAction(formData: FormData) {
+  // ... validation and session creation
+  revalidatePath('/', 'layout');
+  return { success: true }; // Let client handle redirect
+}
+
+// Client-side form handler
+const handleLogin = async (formData: FormData) => {
+  const result = await loginAction(formData);
+  if (result?.success) {
+    router.push('/dashboard'); // Client-side redirect works perfectly
+  }
+};
+```
+
+**Why this happens:**
+- Server action calls `redirect()` 
+- Browser starts redirecting but original POST is still in flight
+- POST completes and triggers another redirect
+- Results in duplicate requests and redirect loops
+
+**Always do this for login/logout/auth actions:**
+1. Server action returns `{ success: true }`
+2. Client checks result and uses `router.push()` 
+3. No more timing issues or duplicate requests
+
 ## 🚨 COMMON MISTAKES TO AVOID (You Always Make These!)
 
 1. **Forgetting to await params in dynamic routes**

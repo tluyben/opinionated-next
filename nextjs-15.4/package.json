@@ -15,6 +15,7 @@
     "db:studio": "drizzle-kit studio",
     "create-admin": "node scripts/create-admin.js",
     "reset-admin": "node scripts/reset-admin.js",
+    "setup-test-users": "npx tsx scripts/setup-test-users.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

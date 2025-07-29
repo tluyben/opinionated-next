@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
@@ -43,6 +43,16 @@ const adminNavigation = [
 export function Sidebar({ user }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    const result = await logoutAction();
+    if (result?.success) {
+      console.log('🎉 [CLIENT] Logout successful, redirecting to login');
+      router.push('/login');
+    }
+  };
+
 
   return (
     <>
@@ -149,11 +159,9 @@ export function Sidebar({ user }: SidebarProps) {
               <span className="text-sm text-muted-foreground">Theme</span>
               <ThemeToggle />
             </div>
-            <form action={logoutAction} className="w-full">
-              <Button variant="outline" size="sm" className="w-full">
-                Sign Out
-              </Button>
-            </form>
+            <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
+              Sign Out
+            </Button>
           </div>
         </div>
       </div>

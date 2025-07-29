@@ -1,26 +1,37 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { loginAction } from '@/lib/actions/auth';
 import { OAuthButtons } from './oauth-buttons';
 import Link from 'next/link';
+import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export function LoginForm() {
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+interface LoginFormProps {
+  error?: string;
+}
 
-  const handleSubmit = async (formData: FormData) => {
-    setLoading(true);
-    setError(null);
-    
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? 'Signing In...' : 'Sign In'}
+    </Button>
+  );
+}
+
+export function LoginForm({ error }: LoginFormProps) {
+  const router = useRouter();
+
+  const handleLogin = async (formData: FormData) => {
     const result = await loginAction(formData);
-    
-    if (result?.error) {
-      setError(result.error);
-      setLoading(false);
+    if (result?.success) {
+      console.log('🎉 [CLIENT] Login successful, redirecting to dashboard');
+      router.push('/dashboard');
     }
   };
 
@@ -32,7 +43,7 @@ export function LoginForm() {
           <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={handleSubmit} className="space-y-4">
+          <form action={handleLogin} className="space-y-4">
             {error && (
               <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-md">
                 {error}
@@ -48,7 +59,6 @@ export function LoginForm() {
                 type="email"
                 placeholder="Enter your email"
                 required
-                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -61,12 +71,9 @@ export function LoginForm() {
                 type="password"
                 placeholder="Enter your password"
                 required
-                disabled={loading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing In...' : 'Sign In'}
-            </Button>
+            <SubmitButton />
           </form>
           
           <div className="mt-6">
