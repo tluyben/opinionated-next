@@ -58,3 +58,6 @@ drizzle/migrations/*.sql
 
 cookies.txt
 server.pid
+
+test-results
+playwright-report
